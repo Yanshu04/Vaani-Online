@@ -65,14 +65,18 @@ export default function Sidebar({ config, setConfig, voices, health, clearChat, 
       overflowY: 'auto'
     }}>
       <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '22px',
-            fontWeight: 600,
-            color: 'var(--text)',
-            letterSpacing: '-0.3px'
-          }}>Vaani</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img src="/favicon.svg" alt="Vaani Logo" style={{ width: '26px', height: '25px', objectFit: 'contain' }} />
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '22px',
+              fontWeight: 600,
+              color: 'var(--text)',
+              letterSpacing: '-0.3px',
+              margin: 0
+            }}>Vaani</h1>
+          </div>
           <button 
             type="button"
             onClick={startTour}
