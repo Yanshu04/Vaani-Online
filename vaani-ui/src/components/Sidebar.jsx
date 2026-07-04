@@ -218,17 +218,15 @@ export default function Sidebar({ config, setConfig, voices, health, clearChat, 
             width: '6px',
             height: '6px',
             borderRadius: '50%',
-            background: (health?.llm_provider === 'groq' ? health?.groq_configured : health?.ollama_connected) ? 'var(--success)' : 'var(--danger)',
-            boxShadow: (health?.llm_provider === 'groq' ? health?.groq_configured : health?.ollama_connected) ? '0 0 6px var(--success)' : '0 0 6px var(--danger)'
+            background: health?.groq_configured ? 'var(--success)' : 'var(--danger)',
+            boxShadow: health?.groq_configured ? '0 0 6px var(--success)' : '0 0 6px var(--danger)'
           }}/>
           <span style={{
             fontFamily: 'var(--font-mono)',
             fontSize: '11px',
             color: 'var(--muted)'
           }}>
-            {health?.llm_provider === 'groq' 
-              ? (health?.groq_configured ? 'Groq online' : 'Groq offline') 
-              : (health?.ollama_connected ? 'Ollama connected' : 'Ollama offline')}
+            {health?.groq_configured ? 'Groq online' : 'Groq offline'}
           </span>
         </div>
         <button

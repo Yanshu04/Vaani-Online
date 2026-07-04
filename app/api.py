@@ -27,31 +27,22 @@ app.add_middleware(RateLimitMiddleware, max_requests=10, window_seconds=3600)
 
 pipeline = None
 tts = TTSGenerator()
-llm = LLMResponder()
+llm = None
 
 @app.on_event("startup")
 def startup():
-    global pipeline
+    global pipeline, llm
     settings.WHISPER_MODEL = "medium"
     pipeline = VoicePipeline()
+    llm = LLMResponder()
 
 @app.get("/health")
 def health():
     groq_ok = settings.GROQ_API_KEY is not None and len(settings.GROQ_API_KEY.strip()) > 0
-    ollama_ok = False
-    if settings.LLM_PROVIDER.lower() == "local":
-        try:
-            import requests
-            r = requests.get(f"{settings.OLLAMA_URL}/api/tags", timeout=2)
-            ollama_ok = r.status_code == 200
-        except:
-            ollama_ok = False
 
     return {
         "status": "ok",
-        "llm_provider": settings.LLM_PROVIDER.lower(),
-        "groq_configured": groq_ok,
-        "ollama_connected": ollama_ok
+        "groq_configured": groq_ok
     }
 
 @app.get("/voices")
