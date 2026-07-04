@@ -1,22 +1,22 @@
 import json
-import requests
 from typing import Generator
+from openai import OpenAI
 from app.config import settings
 
 class LLMResponder:
     def __init__(self):
         """
-        Initializes the Ollama local responder using variables configured in settings.
+        Initializes the Groq responder using variables configured in settings.
         """
-        self.url = f"{settings.OLLAMA_URL}/api/chat"
-        self.model = settings.OLLAMA_MODEL
+        self.client = OpenAI(api_key=settings.GROQ_API_KEY, base_url=settings.GROQ_BASE_URL)
+        self.model = settings.GROQ_MODEL
 
     def generate_response(self, chat_history: list[dict]) -> str:
         """
-        Sends the entire conversation thread history to Ollama and returns the assistant reply.
+        Sends the entire conversation thread history to Groq and returns the assistant reply.
         
         Args:
-            chat_history (list[dict]): A list of messages in Ollama format:
+            chat_history (list[dict]): A list of messages in standard format:
                                        [{"role": "user"|"assistant"|"system", "content": "..."}]
         
         Returns:
@@ -37,36 +37,29 @@ class LLMResponder:
             msg for msg in chat_history if msg["role"] != "system"
         ]
 
-        payload = {
-            "model": self.model,
-            "messages": messages_payload,
-            "stream": False  # Disable streaming for synchronous processing
-        }
+        # Clean messages payload from any extra fields (like original_text, detected_language)
+        # to prevent OpenAI/Groq API validation errors.
+        cleaned_messages = []
+        for msg in messages_payload:
+            cleaned_messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
 
         try:
-            # Send POST request to Ollama service
-            response = requests.post(self.url, json=payload, timeout=30)
-            response.raise_for_status()
-            result = response.json()
-            
-            # Extract content from response
-            return result["message"]["content"].strip()
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=cleaned_messages,
+                timeout=30
+            )
+            return response.choices[0].message.content.strip()
 
-        except requests.exceptions.Timeout:
-            raise RuntimeError(
-                f"Ollama server timed out. Ensure your computer has enough resources "
-                f"to execute the model '{self.model}'."
-            )
-        except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Cannot connect to the local Ollama server at {settings.OLLAMA_URL}. "
-                f"Please verify Ollama is installed and running, and that you have pulled "
-                f"the model (run: `ollama pull {self.model}`). Error: {e}"
-            )
+        except Exception as e:
+            raise RuntimeError(f"Error querying Groq API: {str(e)}")
 
     def generate_response_stream(self, chat_history: list[dict]) -> Generator[str, None, None]:
         """
-        Sends the conversation thread to Ollama and yields response chunks in real-time.
+        Sends the conversation thread to Groq and yields response chunks in real-time.
         """
         system_message = {
             "role": "system",
@@ -81,31 +74,25 @@ class LLMResponder:
             msg for msg in chat_history if msg["role"] != "system"
         ]
 
-        payload = {
-            "model": self.model,
-            "messages": messages_payload,
-            "stream": True  # Enable streaming
-        }
+        cleaned_messages = []
+        for msg in messages_payload:
+            cleaned_messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
 
         try:
-            # Send POST request to Ollama service with streaming enabled
-            response = requests.post(self.url, json=payload, timeout=30, stream=True)
-            response.raise_for_status()
-            
-            for line in response.iter_lines():
-                if line:
-                    chunk = json.loads(line.decode('utf-8'))
-                    if "message" in chunk and "content" in chunk["message"]:
-                        yield chunk["message"]["content"]
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=cleaned_messages,
+                stream=True,
+                timeout=30
+            )
+            for chunk in response:
+                content = chunk.choices[0].delta.content
+                if content:
+                    yield content
 
-        except requests.exceptions.Timeout:
-            raise RuntimeError(
-                f"Ollama server timed out. Ensure your computer has enough resources "
-                f"to execute the model '{self.model}'."
-            )
-        except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Cannot connect to the local Ollama server at {settings.OLLAMA_URL}. "
-                f"Please verify Ollama is installed and running, and that you have pulled "
-                f"the model (run: `ollama pull {self.model}`). Error: {e}"
-            )
+        except Exception as e:
+            raise RuntimeError(f"Error querying Groq API stream: {str(e)}")
+

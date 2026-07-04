@@ -35,13 +35,8 @@ def startup():
 
 @app.get("/health")
 def health():
-    try:
-        import httpx
-        r = httpx.get(f"{settings.OLLAMA_URL}/api/tags", timeout=3)
-        ollama_ok = r.status_code == 200
-    except:
-        ollama_ok = False
-    return {"status": "ok", "ollama_connected": ollama_ok}
+    groq_ok = settings.GROQ_API_KEY is not None and len(settings.GROQ_API_KEY.strip()) > 0
+    return {"status": "ok", "groq_configured": groq_ok}
 
 @app.get("/voices")
 def get_voices():

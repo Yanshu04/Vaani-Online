@@ -28,3 +28,4 @@ edge-tts>=7.2.8            # Microsoft Edge's translation service/TTS (natural n
 
 # --- Testing ---
 pytest>=8.1.1              # Unit testing framework
+openai>=1.0.0
