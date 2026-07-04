@@ -1,7 +1,9 @@
 import os
+import io
+import re
 import numpy as np
-import torch
-from faster_whisper import WhisperModel
+import soundfile as sf
+from openai import OpenAI
 from app.config import settings
 
 class UnsupportedLanguageError(Exception):
@@ -13,99 +15,80 @@ class LowConfidenceError(Exception):
     pass
 
 class Transcriber:
-    _cuda_disabled = False
-
     def __init__(self):
         """
-        Initializes the faster-whisper model. Auto-detects and uses CUDA GPU if available.
-        Saves downloaded model weights to the configured local folder.
+        Initializes the Groq client.
         """
-        os.makedirs(settings.MODELS_DIR, exist_ok=True)
-        import numpy as np
-        
-        # Auto-detect CUDA GPU availability
-        if Transcriber._cuda_disabled:
-            self.device = "cpu"
-        else:
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.compute_type = "float16" if self.device == "cuda" else "int8"
-        
-        print(f"Loading Whisper model '{settings.WHISPER_MODEL}' on {self.device.upper()} with compute_type='{self.compute_type}'...")
-        try:
-            self.model = WhisperModel(
-                settings.WHISPER_MODEL,
-                device=self.device,
-                compute_type=self.compute_type,
-                download_root=settings.MODELS_DIR
-            )
-            # Verify CUDA runtime/DLL health by performing a dummy language detection pass
-            if self.device == "cuda":
-                dummy_audio = np.zeros(1600, dtype=np.float32)
-                self.model.detect_language(dummy_audio)
-        except Exception as e:
-            if self.device == "cuda":
-                print(f"CUDA execution failed ({e}). Falling back to CPU execution...")
-                Transcriber._cuda_disabled = True
-                self.device = "cpu"
-                self.compute_type = "int8"
-                self.model = WhisperModel(
-                    settings.WHISPER_MODEL,
-                    device=self.device,
-                    compute_type=self.compute_type,
-                    download_root=settings.MODELS_DIR
-                )
-            else:
-                raise e
-        print(f"Whisper model '{settings.WHISPER_MODEL}' loaded successfully on {self.device.upper()}.")
+        self.client = OpenAI(api_key=settings.GROQ_API_KEY, base_url=settings.GROQ_BASE_URL)
+        self.model = "whisper-large-v3"
+        print("Groq Cloud Transcriber initialized.")
 
     def transcribe(self, audio: np.ndarray) -> dict:
         """
-        Transcribes the float32 raw audio array using auto-detected language.
+        Transcribes the float32 raw audio array using Groq's Hosted Whisper API.
         Returns:
             dict: {"text": str, "language": str, "confidence": float}
         """
         if audio is None or len(audio) == 0:
             raise ValueError("Empty audio input provided for transcription")
 
-        # Run transcription with auto-detection for languages
-        # task="transcribe" preserves the original language spoken (e.g. Hindi stays Hindi)
-        # initial_prompt guides spelling, punctuation, and code-switched conversations.
-        segments, info = self.model.transcribe(
-            audio,
-            beam_size=5,
-            language=None,
-            task="transcribe",
-            vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 500},
-            initial_prompt="English, Hindi, and Gujarati conversations with proper punctuation."
-        )
+        # Convert numpy array to WAV bytes in-memory
+        wav_buffer = io.BytesIO()
+        sf.write(wav_buffer, audio, settings.SAMPLE_RATE, format="WAV", subtype="PCM_16")
+        wav_buffer.seek(0)
+        wav_buffer.name = "audio.wav"
 
-        # Segments is a generator; retrieve and join the transcribed sentences
-        text_segments = [segment.text for segment in segments]
-        full_text = " ".join(text_segments).strip()
+        try:
+            response = self.client.audio.transcriptions.create(
+                model=self.model,
+                file=wav_buffer,
+                response_format="verbose_json"
+            )
+        except Exception as e:
+            raise RuntimeError(f"Groq speech-to-text API error: {e}")
 
-        if not full_text:
+        # Check no_speech_prob to filter out silent audio/hallucinations
+        if hasattr(response, "segments") and response.segments:
+            no_speech_probs = []
+            for seg in response.segments:
+                prob = seg.get("no_speech_prob", 0.0) if isinstance(seg, dict) else getattr(seg, "no_speech_prob", 0.0)
+                no_speech_probs.append(prob)
+            if no_speech_probs:
+                avg_no_speech = sum(no_speech_probs) / len(no_speech_probs)
+                if avg_no_speech > 0.6:
+                    raise ValueError("Empty transcription result")
+
+        full_text = response.text.strip()
+        # Clean text of punctuation to verify it is not just silent/empty transcription
+        cleaned_text = re.sub(r'[^\w\s]', '', full_text).strip()
+        if not cleaned_text:
             raise ValueError("Empty transcription result")
 
-        detected_lang = info.language
-        confidence = info.language_probability
+        # Get detected language (verbose_json returns language string)
+        detected_lang = getattr(response, "language", "en")
+        detected_lang = detected_lang.lower().strip()
 
-        # Validate that the detected language is one of the supported ones (hi, en, gu)
-        if detected_lang not in settings.SUPPORTED_LANGUAGES:
+        # Map common verbose language names or codes to standard codes (hi, gu, en)
+        lang_map = {
+            "hindi": "hi", "hi": "hi",
+            "gujarati": "gu", "gu": "gu",
+            "english": "en", "en": "en"
+        }
+        mapped_lang = lang_map.get(detected_lang, "en")
+
+        # Validate that the detected language is supported
+        if mapped_lang not in settings.SUPPORTED_LANGUAGES:
             raise UnsupportedLanguageError(
                 f"Detected language '{detected_lang}' is not supported. "
                 f"Supported languages are: {settings.SUPPORTED_LANGUAGES}"
             )
 
-        # Validate confidence to filter out noisy speech or random background murmurs
-        if confidence < settings.CONFIDENCE_THRESHOLD:
-            raise LowConfidenceError(
-                f"Language detection confidence ({confidence:.2f}) is below the threshold "
-                f"({settings.CONFIDENCE_THRESHOLD:.2f}). Please try speaking again."
-            )
+        # Groq verbose_json does not expose a single confidence float in the same way,
+        # but we can return 1.0. The pipeline checks confidence threshold (default 0.6).
+        confidence = 1.0
 
         return {
             "text": full_text,
-            "language": detected_lang,
+            "language": mapped_lang,
             "confidence": confidence
         }

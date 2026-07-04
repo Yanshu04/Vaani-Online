@@ -17,9 +17,14 @@ from app.middleware.rate_limit import RateLimitMiddleware
 
 app = FastAPI(title="Vaani API")
 
+import os
+
+allowed_origins = [origin.strip() for origin in os.getenv("VAANI_ALLOWED_ORIGINS", "*").split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=True if "*" not in allowed_origins else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -32,7 +37,6 @@ llm = None
 @app.on_event("startup")
 def startup():
     global pipeline, llm
-    settings.WHISPER_MODEL = "medium"
     pipeline = VoicePipeline()
     llm = LLMResponder()
 
