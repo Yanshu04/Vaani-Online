@@ -1,10 +1,7 @@
 import time
 import threading
 import numpy as np
-try:
-    import sounddevice as sd
-except (ImportError, OSError):
-    sd = None
+import sounddevice as sd
 import webrtcvad
 from app.config import settings
 
@@ -15,8 +12,6 @@ def record_until_silence() -> tuple[np.ndarray, np.ndarray | None]:
     Returns a tuple of (audio_float32, silence_float32) where silence_float32 contains
     only non-speech frames for noise profile estimation.
     """
-    if sd is None:
-        raise RuntimeError("PortAudio library not found. Microphone recording is not supported on this system.")
     sample_rate = settings.SAMPLE_RATE
     vad_aggressiveness = settings.VAD_AGGRESSIVENESS
     silence_ms = settings.SILENCE_MS
@@ -100,8 +95,6 @@ def push_to_talk_record(duration_seconds: int = 5) -> tuple[np.ndarray, np.ndarr
     Returns a tuple of (audio_float32, silence_float32) where silence_float32 contains
     only non-speech frames for noise profile estimation.
     """
-    if sd is None:
-        raise RuntimeError("PortAudio library not found. Microphone recording is not supported on this system.")
     sample_rate = settings.SAMPLE_RATE
     audio_list = []
 
@@ -233,8 +226,6 @@ class ThreadedRecorder:
             self.finished = True
 
     def start(self):
-        if sd is None:
-            raise RuntimeError("PortAudio library not found. Microphone recording is not supported on this system.")
         self.audio_frames = []
         self.silence_frames = []
         self.stop_event.clear()

@@ -1,27 +1,31 @@
 # =============================================================================
-# Vaani Dependencies (Lightweight Cloud Deployment Config)
+# Vaani Dependencies (Optimized for Python 3.13 compatibility)
 # =============================================================================
 
-# --- Web & API Server ---
-fastapi>=0.115.0
-uvicorn>=0.30.0
-pydantic>=2.0.0
-python-multipart>=0.0.9
-
-# --- Audio Processing & File Handling ---
-sounddevice>=0.4.6         # Captures live audio stream from the microphone (local only)
-webrtcvad-wheels>=2.0.14   # Voice Activity Detection (local silence vs speech detection)
+# --- Audio Processing ---
+sounddevice>=0.4.6         # Captures live audio stream from the microphone
+webrtcvad-wheels>=2.0.14   # Voice Activity Detection (silence vs speech detection, pre-compiled for Windows & Python 3.13)
 noisereduce>=3.0.2         # Cleans background noise from raw audio inputs
-numpy>=2.1.0               # Performs matrix operations on audio arrays
-soundfile>=0.12.1          # Reads and writes audio files for API communication
+numpy>=2.1.0               # Performs matrix operations and manipulations on audio arrays (Python 3.13 wheels)
 
-# --- Cloud APIs & Utilities ---
-openai>=1.0.0              # OpenAI client used for Groq STT, LLM, and Translation APIs
-python-dotenv>=1.0.1       # Loads environment configurations from local .env
+# --- AI & Translation Models ---
+torch>=2.6.0               # Core deep learning backend required by transformers (Python 3.13 wheels)
+faster-whisper>=1.0.3      # High-performance speech-to-text engine optimized for CPU execution
+transformers>=4.45.0       # Interface for Helsinki-NLP machine translation models (supports tokenizers with Python 3.13 wheels)
+sentencepiece>=0.2.1       # Text tokenizer dependency required by translation models (Python 3.13 wheels)
+langdetect>=1.0.9          # Fallback language detector for mixed-language sentence translations
+
+# --- Frontend & UI ---
+streamlit>=1.35.0          # Lightweight framework for rendering the web application UI (supports NumPy 2.x)
+
+# --- Utilities ---
+python-dotenv>=1.0.1       # Loads environment configurations from the local .env file
 
 # --- Text-to-Speech ---
-pyttsx3>=2.90              # Offline text-to-speech engine (fallback)
-edge-tts>=7.2.8            # Microsoft Edge neural TTS
+pyttsx3>=2.90              # Offline text-to-speech engine
+edge-tts>=7.2.8            # Microsoft Edge's translation service/TTS (natural neural voices)
+
 
 # --- Testing ---
-pytest>=8.1.1
+pytest>=8.1.1              # Unit testing framework
+openai>=1.0.0

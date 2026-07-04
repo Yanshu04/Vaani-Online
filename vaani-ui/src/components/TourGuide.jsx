@@ -22,8 +22,8 @@ const TOUR_STEPS = [
     targetId: "tour-tts"
   },
   {
-    title: "Groq Connection Status",
-    text: "Shows if the Groq cloud LLM API is configured. Ensure your GROQ_API_KEY is set in .env to start chatting.",
+    title: "Ollama Connection Status",
+    text: "Shows if the local Ollama LLM server is active. Ensure Ollama is running on your machine to start chatting.",
     targetId: "tour-status"
   },
   {

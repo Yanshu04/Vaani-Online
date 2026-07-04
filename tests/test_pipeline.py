@@ -76,41 +76,75 @@ def test_pipeline_no_mic(monkeypatch):
 
 def test_llm_responder_success(monkeypatch):
     """
-    Validates that LLMResponder successfully queries Groq and parses the reply.
+    Validates that LLMResponder successfully requests Ollama and parses the reply.
     """
     from app.core.llm_responder import LLMResponder
-    from unittest.mock import MagicMock
+    import requests
 
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "Mocked LLM reply in English."
+    class MockResponse:
+        def __init__(self, json_data, status_code=200):
+            self.json_data = json_data
+            self.status_code = status_code
 
-    mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = mock_response
+        def json(self):
+            return self.json_data
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.exceptions.HTTPError(f"HTTP {self.status_code}")
+
+    def mock_post(url, json, timeout):
+        # Verify request details
+        assert "api/chat" in url
+        assert json["model"] == settings.OLLAMA_MODEL
+        assert len(json["messages"]) > 0
+        assert json["messages"][0]["role"] == "system"
+        return MockResponse({
+            "message": {
+                "role": "assistant",
+                "content": "Mocked LLM reply in English."
+            }
+        })
+
+    monkeypatch.setattr(requests, "post", mock_post)
 
     responder = LLMResponder()
-    responder.client = mock_client
-
     response = responder.generate_response([{"role": "user", "content": "Hello"}])
     assert response == "Mocked LLM reply in English."
-    mock_client.chat.completions.create.assert_called_once()
 
-def test_llm_responder_api_error(monkeypatch):
+def test_llm_responder_timeout(monkeypatch):
     """
-    Validates that LLMResponder raises a RuntimeError when Groq API fails.
+    Validates that LLMResponder raises a RuntimeError on HTTP/Connection timeouts.
     """
     from app.core.llm_responder import LLMResponder
-    from unittest.mock import MagicMock
+    import requests
 
-    mock_client = MagicMock()
-    mock_client.chat.completions.create.side_effect = Exception("API rate limit exceeded")
+    def mock_post_timeout(*args, **kwargs):
+        raise requests.exceptions.Timeout("Connection timed out")
+
+    monkeypatch.setattr(requests, "post", mock_post_timeout)
 
     responder = LLMResponder()
-    responder.client = mock_client
-
     with pytest.raises(RuntimeError) as exc_info:
         responder.generate_response([{"role": "user", "content": "Hello"}])
-    assert "Error querying Groq API" in str(exc_info.value)
+    assert "Ollama server timed out" in str(exc_info.value)
+
+def test_llm_responder_connection_error(monkeypatch):
+    """
+    Validates that LLMResponder raises a RuntimeError on general request exception.
+    """
+    from app.core.llm_responder import LLMResponder
+    import requests
+
+    def mock_post_error(*args, **kwargs):
+        raise requests.exceptions.ConnectionError("Connection refused")
+
+    monkeypatch.setattr(requests, "post", mock_post_error)
+
+    responder = LLMResponder()
+    with pytest.raises(RuntimeError) as exc_info:
+        responder.generate_response([{"role": "user", "content": "Hello"}])
+    assert "Cannot connect to the local Ollama server" in str(exc_info.value)
 
 def test_pipeline_e2e_with_mock_llm(monkeypatch):
     """

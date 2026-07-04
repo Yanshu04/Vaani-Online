@@ -69,11 +69,9 @@ def run_in_sta_thread(func):
         error = []
         
         def target():
-            is_windows = os.name == 'nt'
             try:
-                # Initialize COM as STA (Single Threaded Apartment) on this fresh thread if on Windows
-                if is_windows:
-                    ctypes.windll.ole32.CoInitialize(None)
+                # Initialize COM as STA (Single Threaded Apartment) on this fresh thread
+                ctypes.windll.ole32.CoInitialize(None)
                 res = func(*args, **kwargs)
                 result.append(res)
             except Exception as e:
@@ -81,11 +79,10 @@ def run_in_sta_thread(func):
                 traceback.print_exc()
                 error.append(e)
             finally:
-                if is_windows:
-                    try:
-                        ctypes.windll.ole32.CoUninitialize()
-                    except Exception:
-                        pass
+                try:
+                    ctypes.windll.ole32.CoUninitialize()
+                except Exception:
+                    pass
         
         t = threading.Thread(target=target)
         t.start()

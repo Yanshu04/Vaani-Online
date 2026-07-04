@@ -17,14 +17,9 @@ from app.middleware.rate_limit import RateLimitMiddleware
 
 app = FastAPI(title="Vaani API")
 
-import os
-
-allowed_origins = [origin.strip() for origin in os.getenv("VAANI_ALLOWED_ORIGINS", "*").split(",") if origin.strip()]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True if "*" not in allowed_origins else False,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -32,21 +27,31 @@ app.add_middleware(RateLimitMiddleware, max_requests=10, window_seconds=3600)
 
 pipeline = None
 tts = TTSGenerator()
-llm = None
+llm = LLMResponder()
 
 @app.on_event("startup")
 def startup():
-    global pipeline, llm
+    global pipeline
+    settings.WHISPER_MODEL = "medium"
     pipeline = VoicePipeline()
-    llm = LLMResponder()
 
 @app.get("/health")
 def health():
     groq_ok = settings.GROQ_API_KEY is not None and len(settings.GROQ_API_KEY.strip()) > 0
+    ollama_ok = False
+    if settings.LLM_PROVIDER.lower() == "local":
+        try:
+            import requests
+            r = requests.get(f"{settings.OLLAMA_URL}/api/tags", timeout=2)
+            ollama_ok = r.status_code == 200
+        except:
+            ollama_ok = False
 
     return {
         "status": "ok",
-        "groq_configured": groq_ok
+        "llm_provider": settings.LLM_PROVIDER.lower(),
+        "groq_configured": groq_ok,
+        "ollama_connected": ollama_ok
     }
 
 @app.get("/voices")

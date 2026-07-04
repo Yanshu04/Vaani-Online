@@ -1,14 +1,14 @@
 # Vaani 🎙
 
-Vaani is a multilingual voice assistant powered by Groq's ultra-fast LLM inference API. You can speak to it in **Hindi, Gujarati, or English**. Vaani:
+Vaani is an offline-first, private voice assistant that runs completely local on your computer. You can speak to it in **Hindi, Gujarati, or English**. Vaani:
 1. Filters out background noise and static from your mic.
 2. Transcribes your speech to text using `faster-whisper`.
 3. Detects the input language and translates it (Hindi/Gujarati) to English using Meta's `NLLB-200`.
-4. Queries a Large Language Model via the **Groq API**.
+4. Queries a local Large Language Model (via Ollama).
 5. Translates the LLM's English response back to your spoken input language (e.g. Hindi or Gujarati).
-6. Synthesizes and speaks the response back to you.
+6. Synthesizes and speaks the response back to you offline.
 
-All audio processing and translation runs locally on your machine. Only LLM chat queries are sent to the Groq cloud API.
+No API keys, no internet connection required, and your voice data never leaves your computer.
 
 ---
 
@@ -31,7 +31,7 @@ graph TD
     Denoise -->|2. Speech to Text| STT[Whisper STT - GPU/CPU]
     STT -->|3. Multilingual Detection| LangMap{Input Language?}
     LangMap -->|Gujarati / Hindi| TransIn[NLLB-200 GPU/CPU Translator]
-    LangMap -->|English| LLM[Groq Cloud LLM]
+    LangMap -->|English| LLM[Ollama Local LLM]
     TransIn -->|Translates to English| LLM
     LLM -->|Generates English Reply| LangMapOut{Input Language?}
     LangMapOut -->|Gujarati / Hindi| TransOut[NLLB-200 GPU/CPU Translator]
@@ -47,7 +47,7 @@ graph TD
 ### Prerequisites
 - **Python:** version 3.10 to 3.13.
 - **Node.js:** version 18 or higher (for the frontend React UI).
-- **Groq API Key:** Get one free at [console.groq.com/keys](https://console.groq.com/keys).
+- **Ollama:** Download and run [Ollama](https://ollama.com/).
 - **NVIDIA GPU (Optional but recommended):** For GPU-accelerated fast translations.
 
 ---
@@ -69,9 +69,8 @@ pip install -r requirements.txt
 # Download model weights (Whisper Medium & NLLB-200 Distilled) locally
 python download_models.py
 
-# Copy the environment template and add your Groq API key
-copy .env.example .env
-# Edit .env and set GROQ_API_KEY=gsk_your_key_here
+# Pull the LLM model inside Ollama
+ollama pull qwen2.5:1.5b
 ```
 
 #### 2. GPU Acceleration Setup (Optional for NVIDIA GPUs)
@@ -94,7 +93,7 @@ npm install
 
 ## Running the Application
 
-Ensure your `GROQ_API_KEY` is set in `.env`, then open two separate terminals:
+Ensure **Ollama** is running in your taskbar, then open two separate terminals:
 
 ### Start the Backend Server (Terminal 1)
 Run the FastAPI application from the project root:
@@ -123,7 +122,7 @@ Vaani/
 │   │   ├── audio_denoiser.py      # Noise reduction filter
 │   │   ├── stt_engine.py          # faster-whisper STT loading & inference
 │   │   ├── translation_engine.py  # NLLB-200 translation with CUDA GPU support
-│   │   ├── response_generator.py  # Groq LLM streaming client
+│   │   ├── response_generator.py  # Local Ollama streaming client
 │   │   └── voice_synthesizer.py   # offline/online TTS synthesizer
 │   ├── services/
 │   │   └── pipeline.py            # Main workflow orchestrator

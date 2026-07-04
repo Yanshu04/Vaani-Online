@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || '/api'
+const BASE = '/api'
 
 export async function getHealth() {
   const r = await fetch(`${BASE}/health`)
