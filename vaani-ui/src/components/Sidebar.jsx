@@ -67,7 +67,21 @@ export default function Sidebar({ config, setConfig, voices, health, clearChat, 
       <div style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/favicon.svg" alt="Vaani Logo" style={{ width: '26px', height: '25px', objectFit: 'contain' }} />
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ alignSelf: 'center' }}>
+              <rect x="2" y="9" width="2" height="6" rx="1" fill="url(#wave-grad)" />
+              <rect x="6" y="6" width="2" height="12" rx="1" fill="url(#wave-grad)" style={{ opacity: 0.8 }} />
+              <rect x="10" y="3" width="2" height="18" rx="1" fill="url(#wave-grad)" />
+              <rect x="14" y="5" width="2" height="14" rx="1" fill="url(#wave-grad)" />
+              <rect x="18" y="8" width="2" height="8" rx="1" fill="url(#wave-grad)" style={{ opacity: 0.8 }} />
+              <rect x="22" y="10" width="2" height="4" rx="1" fill="url(#wave-grad)" style={{ opacity: 0.6 }} />
+              <defs>
+                <linearGradient id="wave-grad" x1="2" y1="3" x2="22" y2="21" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="var(--cyan)" />
+                  <stop offset="50%" stopColor="var(--accent)" />
+                  <stop offset="100%" stopColor="var(--badge-gu)" />
+                </linearGradient>
+              </defs>
+            </svg>
             <h1 style={{
               fontFamily: 'var(--font-display)',
               fontSize: '22px',
