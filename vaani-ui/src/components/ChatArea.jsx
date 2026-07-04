@@ -42,7 +42,7 @@ export default function ChatArea({
       overflow: 'hidden',
       background: 'var(--bg)'
     }}>
-      {!health?.ollama_connected && (
+      {!health?.groq_configured && (
         <div style={{
           background: 'rgba(239,68,68,0.1)',
           borderBottom: '1px solid rgba(239,68,68,0.3)',
@@ -53,7 +53,7 @@ export default function ChatArea({
           textAlign: 'center',
           letterSpacing: '1px'
         }}>
-          Ollama not connected — start Ollama to enable chat
+          Groq not configured — set GROQ_API_KEY to enable chat
         </div>
       )}
 
