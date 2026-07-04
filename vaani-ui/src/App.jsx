@@ -40,7 +40,7 @@ export default function App() {
         const h = await getHealth()
         setHealth(h)
       } catch (e) {
-        setHealth({ status: 'error', groq_configured: false })
+        setHealth({ status: 'error', llm_provider: 'local', ollama_connected: false, groq_configured: false })
       }
     }
 
