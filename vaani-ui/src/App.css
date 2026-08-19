@@ -1,71 +1,127 @@
 :root {
-  --bg: #0D0F14;
-  --surface: #13161E;
-  --surface-2: #1A1E2A;
-  --surface-3: #222736;
-  --border: #2A2F3E;
-  --border-strong: #353B50;
-  --text: #F0F2F8;
-  --text-secondary: #8B92A8;
-  --muted: #555D72;
-  --accent: #6366F1;
-  --accent-hover: #4F52D4;
-  --accent-glow: rgba(99,102,241,0.15);
-  --cyan: #22D3EE;
-  --cyan-glow: rgba(34,211,238,0.12);
-  --success: #10B981;
-  --danger: #EF4444;
-  --warning: #F59E0B;
-  --badge-hi: #F59E0B;
-  --badge-en: #6366F1;
-  --badge-gu: #8B5CF6;
-  --font-display: 'Sora', sans-serif;
-  --font-sans: 'Inter', sans-serif;
+  --bg-dark: #0c1018;
+  --bg-gradient: radial-gradient(ellipse at 20% 20%, #162035 0%, #0c1018 70%);
+  
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(24px);
+  
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --input-border: rgba(255, 255, 255, 0.1);
+  
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  
+  --accent-blue: #3b82f6;
+  --accent-blue-hover: #2563eb;
+  --accent-blue-glow: rgba(59, 130, 246, 0.4);
+  
+  --status-green: #22c55e;
+  
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Sora', 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 body {
-  background: var(--bg);
-  color: var(--text);
+  background-color: var(--bg-dark);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 14px;
   height: 100vh;
+  width: 100vw;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+/* Glass panel container */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Text cursor & Animations */
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
 .cursor {
-  color: var(--cyan);
+  color: var(--accent-blue);
   animation: blink 1s step-end infinite;
   font-family: var(--font-mono);
 }
 
-@keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
-  50% { box-shadow: 0 0 0 10px transparent; }
+@keyframes micPulse {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 22px rgba(59, 130, 246, 0.85)); transform: scale(1.04); }
 }
-
-@keyframes ripple {
-  0% { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(2.2); opacity: 0; }
+.mic-hero-glow {
+  animation: micPulse 3s ease-in-out infinite;
 }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.message { animation: fadeUp 0.2s ease; }
+.message {
+  animation: fadeUp 0.2s ease;
+}
+
+/* Range input slider styling */
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+input[type=range]::-webkit-slider-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  box-shadow: 0 0 8px var(--accent-blue-glow);
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -5px;
+  transition: transform 0.15s ease;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}

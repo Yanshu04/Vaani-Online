@@ -22,7 +22,8 @@ class VoicePipeline:
         3. Cleans background noise from the audio
         4. Transcribes the cleaned audio to text in the source language
         5. Translates the text to English if it is Hindi or Gujarati
-        6. Submits translation + context window to the local Ollama LLM
+        6. Submits translation + context window to the Groq LLM API
+
         
         Returns:
             dict: The successful transcription/translation/chat response details, or error information.

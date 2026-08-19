@@ -5,201 +5,235 @@ export default function Sidebar({ config, setConfig, voices, health, clearChat, 
     setConfig(prev => ({ ...prev, [key]: val }))
   }
 
-  const controlStyle = {
-    background: 'var(--surface-2)',
-    border: '1px solid var(--border)',
-    color: 'var(--text)',
+  const selectStyle = {
+    background: 'rgba(255, 255, 255, 0.06)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    color: '#ffffff',
     fontFamily: 'var(--font-sans)',
     fontSize: '13px',
-    padding: '8px 12px',
-    borderRadius: 'var(--radius-sm)',
+    padding: '9px 12px',
+    borderRadius: '8px',
     width: '100%',
     outline: 'none',
-    transition: 'border-color 0.15s'
+    cursor: 'pointer',
+    appearance: 'none',
+    backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ca3af' viewBox='0 0 16 16'><path d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/></svg>")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 12px center'
   }
 
   const labelStyle = {
     fontFamily: 'var(--font-mono)',
     fontSize: '10px',
-    letterSpacing: '2px',
+    letterSpacing: '1.2px',
     textTransform: 'uppercase',
-    color: 'var(--muted)',
-    marginBottom: '8px',
-    marginTop: '20px'
-  }
-
-  const activeToggleStyle = {
-    flex: 1,
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    color: '#fff',
-    fontFamily: 'var(--font-sans)',
-    fontSize: '12px',
-    padding: '7px',
-    borderRadius: 'var(--radius-sm)',
-    cursor: 'pointer'
-  }
-
-  const inactiveToggleStyle = {
-    flex: 1,
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    color: 'var(--muted)',
-    fontFamily: 'var(--font-sans)',
-    fontSize: '12px',
-    padding: '7px',
-    borderRadius: 'var(--radius-sm)',
-    cursor: 'pointer'
+    color: '#9ca3af',
+    marginBottom: '6px',
+    marginTop: '18px',
+    fontWeight: 500
   }
 
   return (
-    <aside style={{
-      width: '260px',
-      minWidth: '260px',
-      height: '100vh',
-      background: 'var(--surface)',
-      borderRight: '1px solid var(--border)',
+    <aside className="glass-panel" style={{
+      width: '250px',
+      minWidth: '250px',
+      height: 'calc(100vh - 32px)',
+      margin: '16px 0 16px 16px',
+      borderRadius: '20px',
       display: 'flex',
       flexDirection: 'column',
-      padding: '24px 16px',
-      overflowY: 'auto'
+      padding: '22px 18px',
+      overflowY: 'auto',
+      zIndex: 10
     }}>
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ alignSelf: 'center' }}>
-              <rect x="2" y="9" width="2" height="6" rx="1" fill="url(#wave-grad)" />
-              <rect x="6" y="6" width="2" height="12" rx="1" fill="url(#wave-grad)" style={{ opacity: 0.8 }} />
-              <rect x="10" y="3" width="2" height="18" rx="1" fill="url(#wave-grad)" />
-              <rect x="14" y="5" width="2" height="14" rx="1" fill="url(#wave-grad)" />
-              <rect x="18" y="8" width="2" height="8" rx="1" fill="url(#wave-grad)" style={{ opacity: 0.8 }} />
-              <rect x="22" y="10" width="2" height="4" rx="1" fill="url(#wave-grad)" style={{ opacity: 0.6 }} />
-              <defs>
-                <linearGradient id="wave-grad" x1="2" y1="3" x2="22" y2="21" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="var(--cyan)" />
-                  <stop offset="50%" stopColor="var(--accent)" />
-                  <stop offset="100%" stopColor="var(--badge-gu)" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <h1 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '22px',
-              fontWeight: 600,
-              color: 'var(--text)',
-              letterSpacing: '-0.3px',
-              margin: 0
-            }}>Vaani</h1>
-          </div>
-          <button 
-            type="button"
-            onClick={startTour}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--accent)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              cursor: 'pointer',
-              outline: 'none',
-              padding: '4px 8px',
-              borderRadius: 'var(--radius-sm)',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={e => e.target.style.color = 'var(--text)'}
-            onMouseLeave={e => e.target.style.color = 'var(--accent)'}
-          >
-            ℹ Tour
-          </button>
-        </div>
-        <p style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px',
-          color: 'var(--muted)',
-          letterSpacing: '2px',
-          textTransform: 'uppercase',
-          marginTop: '4px'
-        }}>Private AI · Offline</p>
+      {/* Title & Tour */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '16px'
+      }}>
+        <h1 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '22px',
+          fontWeight: 600,
+          color: '#ffffff',
+          letterSpacing: '-0.3px',
+          margin: 0
+        }}>Vaani</h1>
+        <button 
+          type="button"
+          onClick={startTour}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#60a5fa',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '11px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            outline: 'none'
+          }}
+        >
+          TOUR
+        </button>
       </div>
 
-      <div>
-        {/* Whisper Model */}
-        <p style={labelStyle}>Model</p>
+      <div style={{ flex: 1 }}>
+        {/* Model */}
+        <p style={{ ...labelStyle, marginTop: '8px' }}>MODEL</p>
         <select
           id="tour-model"
-          style={controlStyle}
+          style={selectStyle}
           value={config.whisperModel}
           onChange={(e) => updateConfig('whisperModel', e.target.value)}
-          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-          onBlur={e => e.target.style.borderColor = 'var(--border)'}
         >
-          <option value="tiny">tiny</option>
-          <option value="small">small</option>
-          <option value="medium">medium</option>
-          <option value="large-v2">large-v2</option>
+          <option value="medium" style={{ background: '#101622', color: '#ffffff' }}>medium</option>
+          <option value="small" style={{ background: '#101622', color: '#ffffff' }}>small</option>
+          <option value="tiny" style={{ background: '#101622', color: '#ffffff' }}>tiny</option>
+          <option value="large-v2" style={{ background: '#101622', color: '#ffffff' }}>large-v2</option>
         </select>
 
         {/* Recording Mode */}
-        <p style={labelStyle}>Recording Mode</p>
-        <div id="tour-rec-mode" style={{ display: 'flex', gap: '8px' }}>
+        <p style={labelStyle}>RECORDING MODE</p>
+        <div id="tour-rec-mode" style={{
+          display: 'flex',
+          gap: '4px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          padding: '3px',
+          borderRadius: '8px',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
+        }}>
           <button
+            type="button"
             onClick={() => updateConfig('pttMode', false)}
-            style={!config.pttMode ? activeToggleStyle : inactiveToggleStyle}
+            style={{
+              flex: 1,
+              background: !config.pttMode ? '#3b82f6' : 'transparent',
+              border: 'none',
+              color: '#ffffff',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '12px',
+              fontWeight: 500,
+              padding: '6px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              boxShadow: !config.pttMode ? '0 2px 8px rgba(59, 130, 246, 0.4)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
           >
             Auto
           </button>
           <button
+            type="button"
             onClick={() => updateConfig('pttMode', true)}
-            style={config.pttMode ? activeToggleStyle : inactiveToggleStyle}
+            style={{
+              flex: 1,
+              background: config.pttMode ? '#3b82f6' : 'transparent',
+              border: 'none',
+              color: config.pttMode ? '#ffffff' : '#9ca3af',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '12px',
+              fontWeight: 500,
+              padding: '6px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
           >
             PTT
           </button>
         </div>
 
-        {/* TTS Enabled & settings */}
-        <div id="tour-tts">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '24px' }}>
-            <input
-              id="tts-enabled-checkbox"
-              type="checkbox"
-              checked={config.ttsEnabled}
-              onChange={(e) => updateConfig('ttsEnabled', e.target.checked)}
-              style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--accent)' }}
-            />
-            <label
-              htmlFor="tts-enabled-checkbox"
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: '13px',
-                color: 'var(--text)',
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}
-            >
+        {/* Enable TTS */}
+        <div id="tour-tts" style={{ marginTop: '20px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <span style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '13px',
+              color: '#ffffff',
+              userSelect: 'none'
+            }}>
               Enable TTS
+            </span>
+            <label style={{
+              position: 'relative',
+              display: 'inline-block',
+              width: '38px',
+              height: '22px',
+              cursor: 'pointer'
+            }}>
+              <input
+                id="tts-enabled-checkbox"
+                type="checkbox"
+                checked={config.ttsEnabled}
+                onChange={(e) => updateConfig('ttsEnabled', e.target.checked)}
+                style={{ opacity: 0, width: 0, height: 0 }}
+              />
+              <span style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: config.ttsEnabled ? '#3b82f6' : 'rgba(255, 255, 255, 0.15)',
+                transition: '0.2s',
+                borderRadius: '20px',
+                boxShadow: config.ttsEnabled ? '0 0 10px rgba(59, 130, 246, 0.5)' : 'none'
+              }}>
+                <span style={{
+                  position: 'absolute',
+                  height: '16px',
+                  width: '16px',
+                  left: config.ttsEnabled ? '19px' : '3px',
+                  bottom: '3px',
+                  backgroundColor: '#ffffff',
+                  transition: '0.2s',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {config.ttsEnabled && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  )}
+                </span>
+              </span>
             </label>
           </div>
 
           {config.ttsEnabled && (
             <>
-              <p style={labelStyle}>Voice</p>
+              <p style={labelStyle}>VOICE</p>
               <select
-                style={controlStyle}
+                style={selectStyle}
                 value={config.voiceId || ''}
                 onChange={(e) => updateConfig('voiceId', e.target.value || null)}
-                onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                onBlur={e => e.target.style.borderColor = 'var(--border)'}
               >
-                <option value="">Default Voice</option>
-                {voices.map(v => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
+                <option value="" style={{ background: '#101622', color: '#ffffff' }}>Default Voice</option>
+                {voices.filter(v => v.type === 'edge').length > 0 && (
+                  <optgroup label="⚡ Neural Voices (Online)" style={{ background: '#101622', color: '#9ca3af' }}>
+                    {voices.filter(v => v.type === 'edge').map(v => (
+                      <option key={v.id} value={v.id} style={{ background: '#101622', color: '#ffffff' }}>{v.name}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {voices.filter(v => v.type === 'sapi5').length > 0 && (
+                  <optgroup label="🔊 Windows SAPI5 Voices (Offline)" style={{ background: '#101622', color: '#9ca3af' }}>
+                    {voices.filter(v => v.type === 'sapi5').map(v => (
+                      <option key={v.id} value={v.id} style={{ background: '#101622', color: '#ffffff' }}>{v.name}</option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
 
-              {/* Speech speed */}
-              <p style={labelStyle}>Speed ({config.ttsRate})</p>
+              {/* Speed */}
+              <p style={labelStyle}>SPEED ({config.ttsRate})</p>
               <input
                 type="range"
                 min="100"
@@ -207,74 +241,75 @@ export default function Sidebar({ config, setConfig, voices, health, clearChat, 
                 step="10"
                 value={config.ttsRate}
                 onChange={(e) => updateConfig('ttsRate', parseInt(e.target.value))}
-                style={{ accentColor: 'var(--accent)', width: '100%' }}
               />
 
               {/* Volume */}
-              <p style={labelStyle}>Volume ({Math.round(config.ttsVolume * 100)}%)</p>
+              <p style={labelStyle}>VOLUME ({Math.round(config.ttsVolume * 100)}%)</p>
               <input
                 type="range"
                 min="0"
                 max="1"
-                step="0.1"
+                step="0.05"
                 value={config.ttsVolume}
                 onChange={(e) => updateConfig('ttsVolume', parseFloat(e.target.value))}
-                style={{ accentColor: 'var(--accent)', width: '100%' }}
               />
             </>
           )}
         </div>
       </div>
 
-      <div style={{
-        marginTop: 'auto',
-        paddingTop: '20px',
-        borderTop: '1px solid var(--border)'
-      }}>
-        <div id="tour-status" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+      {/* Footer Area */}
+      <div style={{ marginTop: '20px', paddingTop: '16px' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontSize: '13px',
+          color: '#9ca3af',
+          marginBottom: '14px'
+        }}>
+          <span>{health?.groq_configured ? 'Groq online' : 'Groq offline'}</span>
           <span style={{
-            width: '6px',
-            height: '6px',
+            width: '8px',
+            height: '8px',
             borderRadius: '50%',
-            background: (health?.llm_provider === 'groq' ? health?.groq_configured : health?.ollama_connected) ? 'var(--success)' : 'var(--danger)',
-            boxShadow: (health?.llm_provider === 'groq' ? health?.groq_configured : health?.ollama_connected) ? '0 0 6px var(--success)' : '0 0 6px var(--danger)'
-          }}/>
-          <span style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
-            color: 'var(--muted)'
-          }}>
-            {health?.llm_provider === 'groq' 
-              ? (health?.groq_configured ? 'Groq online' : 'Groq offline') 
-              : (health?.ollama_connected ? 'Ollama connected' : 'Ollama offline')}
-          </span>
+            background: health?.groq_configured ? '#22c55e' : '#ef4444',
+            boxShadow: health?.groq_configured ? '0 0 8px rgba(34, 197, 94, 0.7)' : 'none'
+          }}></span>
+
         </div>
+
         <button
+          type="button"
           onClick={clearChat}
           style={{
             width: '100%',
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            color: 'var(--muted)',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            color: '#ffffff',
             fontFamily: 'var(--font-sans)',
-            fontSize: '12px',
-            padding: '8px 12px',
-            borderRadius: 'var(--radius-sm)',
+            fontSize: '13px',
+            fontWeight: 500,
+            padding: '10px',
+            borderRadius: '8px',
             cursor: 'pointer',
-            marginBottom: '12px',
-            transition: 'border-color 0.15s, color 0.15s'
+            transition: 'all 0.15s ease',
+            marginBottom: '12px'
           }}
-          onMouseEnter={e => { e.target.style.borderColor = 'var(--danger)'; e.target.style.color = 'var(--danger)' }}
-          onMouseLeave={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)' }}
+          onMouseEnter={e => e.target.style.background = 'rgba(255, 255, 255, 0.14)'}
+          onMouseLeave={e => e.target.style.background = 'rgba(255, 255, 255, 0.08)'}
         >
           Clear chat
         </button>
+
         <p style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px',
-          color: 'var(--muted)',
-          lineHeight: 1.6
-        }}>🔒 All processing happens locally.</p>
+          fontFamily: 'var(--font-sans)',
+          fontSize: '11px',
+          color: '#6b7280',
+          textAlign: 'center'
+        }}>
+          All processing happens locally.
+        </p>
       </div>
     </aside>
   )

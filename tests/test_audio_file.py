@@ -9,8 +9,9 @@ from scipy.io import wavfile
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import settings
-from app.core.transcriber import Transcriber
-from app.core.translator import Translator
+from app.core.stt_engine import Transcriber
+from app.core.translation_engine import Translator
+
 
 def download_and_test():
     # Candidate raw speech WAV URLs to try downloading (supporting fallbacks for branches/locations)

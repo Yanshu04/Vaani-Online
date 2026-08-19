@@ -1,150 +1,75 @@
-import json
-import requests
 from typing import Generator
 from openai import OpenAI
 from app.config import settings
 
+HUMAN_SYSTEM_PROMPT = (
+    "You are Vaani, a warm, natural, empathetic, and intelligent human companion speaking in a live conversation. "
+    "You communicate like a genuine, friendly human—NOT a robotic AI, machine, or virtual assistant.\n\n"
+    "CRITICAL CONVERSATIONAL RULES:\n"
+    "1. Speak naturally as a human friend. Never use phrases like 'As an AI language model', 'I am an AI assistant', 'How can I assist you today?', or 'I do not have feelings'.\n"
+    "2. Keep responses brief, conversational, and direct (1 to 3 short spoken sentences for casual chat). Avoid long, robotic essays unless asked for detailed explanations.\n"
+    "3. Never use bullet points, numbered lists, markdown bold asterisks (**), or rigid headers in spoken dialogue.\n"
+    "4. Use natural spoken English contractions (like 'I'm', 'you're', 'that's', 'let's', 'won't', 'it's').\n"
+    "5. Show genuine human warmth, curiosity, empathy, and conversational charm.\n"
+    "6. Answer user questions directly with personal warmth, just like talking to a close friend in real life."
+)
+
 class LLMResponder:
     def __init__(self):
         """
-        Initializes the responder in either local (Ollama) or remote (Groq) mode.
+        Initializes the Groq Cloud API LLM responder.
         """
-        self.provider = settings.LLM_PROVIDER.lower()
-        if self.provider == "groq":
-            self.client = OpenAI(api_key=settings.GROQ_API_KEY, base_url=settings.GROQ_BASE_URL)
-            self.model = settings.GROQ_MODEL
-        else:
-            self.url = f"{settings.OLLAMA_URL}/api/chat"
-            self.model = settings.OLLAMA_MODEL
+        if not settings.GROQ_API_KEY:
+            raise ValueError("GROQ_API_KEY is not set in environment variables.")
+        self.client = OpenAI(api_key=settings.GROQ_API_KEY, base_url=settings.GROQ_BASE_URL)
+        self.model = settings.GROQ_MODEL
+
+    def _prepare_messages(self, chat_history: list[dict]) -> list[dict]:
+        system_message = {
+            "role": "system",
+            "content": HUMAN_SYSTEM_PROMPT
+        }
+        messages_payload = [system_message] + [
+            msg for msg in chat_history if msg.get("role") != "system"
+        ]
+        cleaned_messages = []
+        for msg in messages_payload:
+            cleaned_messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
+        return cleaned_messages
 
     def generate_response(self, chat_history: list[dict]) -> str:
         """
-        Sends the entire conversation thread history to LLM and returns the reply.
-        
-        Args:
-            chat_history (list[dict]): A list of messages in standard format:
-                                       [{"role": "user"|"assistant"|"system", "content": "..."}]
-        
-        Returns:
-            str: The text content of the assistant's response.
+        Sends the entire conversation thread to Groq Cloud API and returns the full response string.
         """
-        # System instructions to enforce English response
-        system_message = {
-            "role": "system",
-            "content": (
-                "You are Vaani, a helpful local voice-activated assistant. "
-                "The user will speak to you in Hindi, English, or Gujarati, which will be "
-                "transcribed and translated to English. You must ALWAYS reply in clear, concise English."
+        cleaned_messages = self._prepare_messages(chat_history)
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=cleaned_messages,
+                timeout=30
             )
-        }
-
-        # Prepend the system instructions if not already present
-        messages_payload = [system_message] + [
-            msg for msg in chat_history if msg["role"] != "system"
-        ]
-
-        # Clean messages payload from any extra fields (like original_text, detected_language)
-        # to prevent LLM API validation errors.
-        cleaned_messages = []
-        for msg in messages_payload:
-            cleaned_messages.append({
-                "role": msg.get("role", "user"),
-                "content": msg.get("content", "")
-            })
-
-        if self.provider == "groq":
-            try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=cleaned_messages,
-                    timeout=30
-                )
-                return response.choices[0].message.content.strip()
-            except Exception as e:
-                raise RuntimeError(f"Error querying Groq API: {str(e)}")
-        else:
-            payload = {
-                "model": self.model,
-                "messages": cleaned_messages,
-                "stream": False
-            }
-            try:
-                response = requests.post(self.url, json=payload, timeout=30)
-                response.raise_for_status()
-                result = response.json()
-                return result["message"]["content"].strip()
-            except requests.exceptions.Timeout:
-                raise RuntimeError(
-                    f"Ollama server timed out. Ensure your computer has enough resources "
-                    f"to execute the model '{self.model}'."
-                )
-            except requests.exceptions.RequestException as e:
-                raise RuntimeError(
-                    f"Cannot connect to the local Ollama server at {settings.OLLAMA_URL}. "
-                    f"Please verify Ollama is installed and running. Error: {e}"
-                )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            raise RuntimeError(f"Error querying Groq API: {str(e)}")
 
     def generate_response_stream(self, chat_history: list[dict]) -> Generator[str, None, None]:
         """
-        Sends the conversation thread to LLM and yields response chunks in real-time.
+        Sends the conversation thread to Groq Cloud API and yields response text chunks in real-time.
         """
-        system_message = {
-            "role": "system",
-            "content": (
-                "You are Vaani, a helpful local voice-activated assistant. "
-                "The user will speak to you in Hindi, English, or Gujarati, which will be "
-                "transcribed and translated to English. You must ALWAYS reply in clear, concise English."
+        cleaned_messages = self._prepare_messages(chat_history)
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=cleaned_messages,
+                stream=True,
+                timeout=30
             )
-        }
-
-        messages_payload = [system_message] + [
-            msg for msg in chat_history if msg["role"] != "system"
-        ]
-
-        cleaned_messages = []
-        for msg in messages_payload:
-            cleaned_messages.append({
-                "role": msg.get("role", "user"),
-                "content": msg.get("content", "")
-            })
-
-        if self.provider == "groq":
-            try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=cleaned_messages,
-                    stream=True,
-                    timeout=30
-                )
-                for chunk in response:
-                    content = chunk.choices[0].delta.content
-                    if content:
-                        yield content
-            except Exception as e:
-                raise RuntimeError(f"Error querying Groq API stream: {str(e)}")
-        else:
-            payload = {
-                "model": self.model,
-                "messages": cleaned_messages,
-                "stream": True
-            }
-            try:
-                response = requests.post(self.url, json=payload, timeout=30, stream=True)
-                response.raise_for_status()
-                for line in response.iter_lines():
-                    if line:
-                        chunk = json.loads(line.decode('utf-8'))
-                        if "message" in chunk and "content" in chunk["message"]:
-                            yield chunk["message"]["content"]
-            except requests.exceptions.Timeout:
-                raise RuntimeError(
-                    f"Ollama server timed out. Ensure your computer has enough resources "
-                    f"to execute the model '{self.model}'."
-                )
-            except requests.exceptions.RequestException as e:
-                raise RuntimeError(
-                    f"Cannot connect to the local Ollama server at {settings.OLLAMA_URL}. "
-                    f"Please verify Ollama is installed and running. Error: {e}"
-                )
-
-
+            for chunk in response:
+                content = chunk.choices[0].delta.content
+                if content:
+                    yield content
+        except Exception as e:
+            raise RuntimeError(f"Error querying Groq API stream: {str(e)}")

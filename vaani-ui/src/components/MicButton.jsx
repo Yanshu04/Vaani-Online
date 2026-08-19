@@ -18,37 +18,39 @@ export default function MicButton({
   const animationFrameRef = useRef(null)
 
   const idleStyle = {
-    width: '44px',
-    height: '44px',
+    width: '38px',
+    height: '38px',
     borderRadius: '50%',
-    background: isHovered ? 'var(--accent-glow)' : 'var(--surface-2)',
-    border: '1px solid var(--accent)',
-    color: 'var(--accent)',
-    fontSize: '18px',
-    cursor: 'pointer',
+    background: isHovered ? '#3b82f6' : '#2563eb',
+    border: 'none',
+    color: '#ffffff',
+    fontSize: '16px',
+    cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    animation: 'breathe 2.5s ease-in-out infinite',
-    transition: 'background 0.2s',
-    outline: 'none'
+    transition: 'all 0.15s ease',
+    outline: 'none',
+    boxShadow: isHovered ? '0 0 16px rgba(59, 130, 246, 0.6)' : '0 2px 10px rgba(37, 99, 235, 0.4)',
+    opacity: disabled ? 0.5 : 1
   }
 
   const recordingStyle = {
-    width: '44px',
-    height: '44px',
+    width: '38px',
+    height: '38px',
     borderRadius: '50%',
-    background: 'var(--accent)',
-    border: '1px solid var(--accent)',
-    color: '#fff',
-    fontSize: '18px',
+    background: '#ef4444',
+    border: 'none',
+    color: '#ffffff',
+    fontSize: '16px',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    animation: 'none',
-    outline: 'none'
+    outline: 'none',
+    boxShadow: '0 0 20px rgba(239, 68, 68, 0.7)',
+    animation: 'pulseGlow 1.2s infinite'
   }
 
   async function startRecording() {
@@ -67,13 +69,11 @@ export default function MicButton({
       mediaRecorder.current.onstop = async () => {
         setRecording(false)
         
-        // Clean up audio tracks
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(t => t.stop())
           streamRef.current = null
         }
 
-        // Clean up AudioContext & Analyser
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current)
         }
@@ -96,12 +96,10 @@ export default function MicButton({
       mediaRecorder.current.start()
       setRecording(true)
 
-      // 10s absolute timeout
       timeoutRef.current = setTimeout(() => {
         stopRecording()
       }, 10000)
 
-      // If Auto mode, run silence detection using Web Audio API
       if (!config.pttMode) {
         setupSilenceDetection(stream)
       }
@@ -127,15 +125,14 @@ export default function MicButton({
       const dataArray = new Uint8Array(bufferLength)
 
       let lastSpeechTime = Date.now()
-      const silenceThreshold = 10 // Threshold for silence
-      const silenceDuration = 1500 // 1.5 seconds of silence to stop
+      const silenceThreshold = 10
+      const silenceDuration = 1500
 
       function checkSilence() {
         if (!mediaRecorder.current || mediaRecorder.current.state === 'inactive') return
 
         analyser.getByteTimeDomainData(dataArray)
 
-        // Calculate RMS energy
         let sum = 0
         for (let i = 0; i < bufferLength; i++) {
           const val = (dataArray[i] - 128) / 128
@@ -155,7 +152,6 @@ export default function MicButton({
         animationFrameRef.current = requestAnimationFrame(checkSilence)
       }
 
-      // Delay checking silence by 500ms to allow user to start speaking
       setTimeout(() => {
         checkSilence()
       }, 500)
@@ -176,7 +172,6 @@ export default function MicButton({
     setRecording(false)
   }
 
-  // Auto Mode Click Handler
   const handleClick = () => {
     if (config.pttMode) return
     if (recording) {
@@ -186,7 +181,6 @@ export default function MicButton({
     }
   }
 
-  // PTT Mode Handlers
   const handleMouseDown = () => {
     if (!config.pttMode) return
     startRecording()
@@ -197,31 +191,15 @@ export default function MicButton({
     stopRecording()
   }
 
-  const handleMouseEnter = () => {
-    setIsHovered(true)
-  }
-
-  const handleMouseLeave = () => {
-    setIsHovered(false)
-  }
-
   return (
     <div style={{ position: 'relative', display: 'inline-flex' }}>
       {recording && (
         <>
           <span style={{
-            position: 'absolute', inset: 0,
+            position: 'absolute', inset: -4,
             borderRadius: '50%',
-            background: 'var(--accent)',
+            background: 'rgba(239, 68, 68, 0.4)',
             animation: 'ripple 1.5s ease-out infinite',
-            zIndex: 0
-          }}/>
-          <span style={{
-            position: 'absolute', inset: 0,
-            borderRadius: '50%',
-            background: 'var(--accent)',
-            animation: 'ripple 1.5s ease-out infinite',
-            animationDelay: '0.5s',
             zIndex: 0
           }}/>
         </>
@@ -234,12 +212,16 @@ export default function MicButton({
         onMouseUp={handleMouseUp}
         onTouchStart={handleMouseDown}
         onTouchEnd={handleMouseUp}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         disabled={disabled}
         title={config.pttMode ? "Hold to speak" : "Click to speak"}
       >
-        🎙
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="22"></line>
+        </svg>
       </button>
     </div>
   )

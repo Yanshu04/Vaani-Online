@@ -90,6 +90,12 @@ class Transcriber:
         detected_lang = info.language
         confidence = info.language_probability
 
+        # Script-based override: If text contains Gujarati characters, force detected_lang = 'gu'
+        is_gujarati_script = any(0x0A80 <= ord(c) <= 0x0AFF for c in full_text)
+        if is_gujarati_script:
+            detected_lang = "gu"
+            confidence = max(confidence, 0.95)
+
         # Validate that the detected language is one of the supported ones (hi, en, gu)
         if detected_lang not in settings.SUPPORTED_LANGUAGES:
             raise UnsupportedLanguageError(
@@ -97,12 +103,16 @@ class Transcriber:
                 f"Supported languages are: {settings.SUPPORTED_LANGUAGES}"
             )
 
+        # Lower threshold for Gujarati to prevent false low-confidence rejections
+        effective_threshold = 0.35 if detected_lang == "gu" else settings.CONFIDENCE_THRESHOLD
+
         # Validate confidence to filter out noisy speech or random background murmurs
-        if confidence < settings.CONFIDENCE_THRESHOLD:
+        if confidence < effective_threshold:
             raise LowConfidenceError(
                 f"Language detection confidence ({confidence:.2f}) is below the threshold "
-                f"({settings.CONFIDENCE_THRESHOLD:.2f}). Please try speaking again."
+                f"({effective_threshold:.2f}). Please try speaking again."
             )
+
 
         return {
             "text": full_text,

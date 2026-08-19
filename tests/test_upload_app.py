@@ -9,10 +9,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import settings
-from app.core.transcriber import Transcriber
-from app.core.translator import Translator
-from app.core.llm_responder import LLMResponder
-from app.core.noise_reducer import estimate_noise_level, reduce_noise
+from app.core.stt_engine import Transcriber
+from app.core.translation_engine import Translator
+from app.core.response_generator import LLMResponder
+from app.core.audio_denoiser import estimate_noise_level, reduce_noise
+
 
 st.set_page_config(page_title="Vaani File Upload Tester", page_icon="📂", layout="centered")
 

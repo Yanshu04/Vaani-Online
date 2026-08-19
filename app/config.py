@@ -70,12 +70,14 @@ class Settings:
     MODELS_DIR: str = os.getenv("VAANI_MODELS_DIR", "./models")
     USE_GPU_FOR_NLLB: bool = os.getenv("VAANI_USE_GPU_FOR_NLLB", "true").lower() in ("1", "true", "yes")
     CONFIDENCE_THRESHOLD: float = float(os.getenv("VAANI_TRANSLATION_CONFIDENCE_THRESHOLD", "0.6"))
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "local")  # "local" or "groq"
-    OLLAMA_URL: str = os.getenv("VAANI_OLLAMA_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("VAANI_OLLAMA_MODEL", "qwen2.5:1.5b")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_BASE_URL: str = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "groq/compound")
+    RATE_LIMIT_MAX_REQUESTS: int = int(os.getenv("VAANI_RATE_LIMIT_MAX_REQUESTS", "100"))
+    RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("VAANI_RATE_LIMIT_WINDOW_SECONDS", "3600"))
+
+
+
 
 # Export a single global instance of Settings
 settings = Settings()

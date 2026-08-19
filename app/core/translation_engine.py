@@ -1,5 +1,6 @@
 import os
 import re
+import threading
 import torch
 from langdetect import detect
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -25,6 +26,8 @@ class Translator:
         self.model = None
         self.tokenizer = None
         self.device = None
+        self.lock = threading.Lock()
+
 
     def _load_model(self):
         """
@@ -91,49 +94,79 @@ class Translator:
         if source_lang not in NLLB_LANG_MAP:
             raise ValueError(f"Unsupported source language for translation: {source_lang}")
 
-        # Pre-load/check rule-based overrides for common phrases (e.g. Gujarati greetings)
+        # Pre-load/check rule-based overrides for common phrases (e.g. Gujarati & Romanized Gujarati greetings)
         if source_lang == "gu":
             clean_text = re.sub(r'[?.!,।]', '', text.strip()).lower()
             clean_text = re.sub(r'\s+', ' ', clean_text)
             gu_overrides = {
+                # Gujarati Script
                 "કેમ છો": "How are you?",
                 "તમે કેમ છો": "How are you?",
+                "નમસ્તે તમે કેમ છો": "Hello, how are you?",
+                "નમસ્તે કેમ છો": "Hello, how are you?",
                 "કેમ છો તમે": "How are you?",
                 "કેમ છો ભાઈ": "How are you, brother?",
                 "કેમ છે": "How is it?",
                 "શું ચાલે છે": "What's going on?",
+                "સુ ચાલે છે": "What's going on?",
                 "હું મજામાં છું": "I am fine.",
                 "હું ઠીક છું": "I am okay.",
                 "મજામાં": "Fine.",
                 "તમારું નામ શું છે": "What is your name?",
                 "તારું નામ શું છે": "What is your name?",
                 "નમસ્તે": "Hello.",
-                "આભાર": "Thank you."
+                "આભાર": "Thank you.",
+                "શુ કરો છો": "What are you doing?",
+                "સુ કરો છો": "What are you doing?",
+                "તમે શું કરો છો": "What are you doing?",
+                # Romanized Gujarati (Gujlish)
+                "kem cho": "How are you?",
+                "kem cho tame": "How are you?",
+                "tame kem cho": "How are you?",
+                "namaste tame kem cho": "Hello, how are you?",
+                "namaste kem cho": "Hello, how are you?",
+                "kem chhe": "How is it?",
+                "su chale che": "What's going on?",
+                "shu chale che": "What's going on?",
+                "hu majama chu": "I am fine.",
+                "hu thik chu": "I am okay.",
+                "majama": "I am fine.",
+                "tamaru naam shu che": "What is your name?",
+                "tamaru naam su che": "What is your name?",
+                "taru naam shu che": "What is your name?",
+                "namaste": "Hello.",
+                "aabhar": "Thank you.",
+                "su karo cho": "What are you doing?",
+                "shu karo cho": "What are you doing?",
+                "tame shu karo cho": "What are you doing?"
             }
             if clean_text in gu_overrides:
                 return gu_overrides[clean_text]
 
+
         self._load_model()
 
         try:
-            # Set source language on the tokenizer
-            self.tokenizer.src_lang = NLLB_LANG_MAP[source_lang]
-            
-            # Tokenize input text (truncating long inputs to match max model size)
-            inputs = self.tokenizer(text, return_tensors="pt", max_length=512, truncation=True)
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            
-            # Generate translation tokens targeting English
-            forced_bos_token_id = self.tokenizer.convert_tokens_to_ids("eng_Latn")
-            outputs = self.model.generate(
-                **inputs,
-                forced_bos_token_id=forced_bos_token_id,
-                max_length=512
-            )
-            
-            # Decode tokens back to English text
-            translated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            return translated_text.strip()
+            with self.lock:
+                # Set source language on the tokenizer
+                self.tokenizer.src_lang = NLLB_LANG_MAP[source_lang]
+                
+                # Tokenize input text (truncating long inputs to match max model size)
+                inputs = self.tokenizer(text, return_tensors="pt", max_length=512, truncation=True)
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                
+                # Generate translation tokens targeting English
+                forced_bos_token_id = self.tokenizer.convert_tokens_to_ids("eng_Latn")
+                outputs = self.model.generate(
+                    **inputs,
+                    forced_bos_token_id=forced_bos_token_id,
+                    max_length=512
+                )
+                
+                # Decode tokens back to English text
+                translated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+                translated_text = re.sub(r'\bwhy are you\b', 'how are you', translated_text, flags=re.IGNORECASE)
+                return translated_text
         except Exception as e:
             raise RuntimeError(f"Translation error from '{source_lang}' to 'en': {e}")
 
@@ -170,22 +203,28 @@ class Translator:
         self._load_model()
 
         try:
-            # Source language is English
-            self.tokenizer.src_lang = NLLB_LANG_MAP["en"]
-            
-            inputs = self.tokenizer(text, return_tensors="pt", max_length=512, truncation=True)
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            
-            # Generate translation tokens targeting target_lang
-            forced_bos_token_id = self.tokenizer.convert_tokens_to_ids(NLLB_LANG_MAP[target_lang])
-            outputs = self.model.generate(
-                **inputs,
-                forced_bos_token_id=forced_bos_token_id,
-                max_length=512
-            )
-            
-            translated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            return translated_text.strip()
+            with self.lock:
+                # Source language is English
+                self.tokenizer.src_lang = NLLB_LANG_MAP["en"]
+                
+                inputs = self.tokenizer(text, return_tensors="pt", max_length=512, truncation=True)
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                
+                # Generate translation tokens targeting target_lang
+                forced_bos_token_id = self.tokenizer.convert_tokens_to_ids(NLLB_LANG_MAP[target_lang])
+                outputs = self.model.generate(
+                    **inputs,
+                    forced_bos_token_id=forced_bos_token_id,
+                    max_length=512
+                )
+                
+                translated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+                if target_lang == "gu":
+                    translated_text = re.sub(r'કંઈપણ પૂછવા માટે મફત લાગે[!.]?', 'તમે નિઃસંકોચ કંઈ પણ પૂછી શકો છો.', translated_text)
+                    translated_text = re.sub(r'મફત લાગે[!.]?', 'નિઃસંકોચ પૂછી શકો છો.', translated_text)
+                    translated_text = re.sub(r'મફત અનુભવો[!.]?', 'નિઃસંકોચ પૂછો.', translated_text)
+                return translated_text
+
         except Exception as e:
             raise RuntimeError(f"Translation error from 'en' to '{target_lang}': {e}")
 
@@ -200,18 +239,18 @@ class Translator:
             return ""
 
         try:
-            # Split sentences keeping the punctuation marks
-            # Split matches after dot-space or after danda (Hindi full stop)
             sentences = re.split(r'(?<=\. )|(?<=।)', text)
             sentences = [s.strip() for s in sentences if s.strip()]
 
             translated_sentences = []
             for sentence in sentences:
-                try:
-                    lang = detect(sentence)
-                except Exception:
-                    # Fallback to English (as-is) if detection fails
+                if len(sentence.strip()) <= 4 and sentence.strip().lower() in ["hi", "hey", "hello", "ok", "bye"]:
                     lang = "en"
+                else:
+                    try:
+                        lang = detect(sentence)
+                    except Exception:
+                        lang = "en"
 
                 # Route based on detected language
                 if lang == "en":

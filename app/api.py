@@ -23,7 +23,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RateLimitMiddleware, max_requests=10, window_seconds=3600)
+app.add_middleware(RateLimitMiddleware, max_requests=settings.RATE_LIMIT_MAX_REQUESTS, window_seconds=settings.RATE_LIMIT_WINDOW_SECONDS)
+
 
 pipeline = None
 tts = TTSGenerator()
@@ -37,22 +38,13 @@ def startup():
 
 @app.get("/health")
 def health():
-    groq_ok = settings.GROQ_API_KEY is not None and len(settings.GROQ_API_KEY.strip()) > 0
-    ollama_ok = False
-    if settings.LLM_PROVIDER.lower() == "local":
-        try:
-            import requests
-            r = requests.get(f"{settings.OLLAMA_URL}/api/tags", timeout=2)
-            ollama_ok = r.status_code == 200
-        except:
-            ollama_ok = False
-
+    groq_ok = bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip())
     return {
         "status": "ok",
-        "llm_provider": settings.LLM_PROVIDER.lower(),
-        "groq_configured": groq_ok,
-        "ollama_connected": ollama_ok
+        "llm_provider": "groq",
+        "groq_configured": groq_ok
     }
+
 
 @app.get("/voices")
 def get_voices():
@@ -152,7 +144,17 @@ async def transcribe(
         result = pipeline.stt_engine.transcribe(audio_cleaned)
         original_text = result["text"]
         detected_lang = result["language"]
+        if detected_lang not in ["en", "hi", "gu"]:
+            gu_match = any(0x0A80 <= ord(c) <= 0x0AFF for c in original_text)
+            hi_match = any(0x0900 <= ord(c) <= 0x097F for c in original_text)
+            if gu_match:
+                detected_lang = "gu"
+            elif hi_match:
+                detected_lang = "hi"
+            else:
+                detected_lang = "en"
         confidence = result["confidence"]
+
     elif text is not None:
         original_text = text
         # Simple unicode-based language detection

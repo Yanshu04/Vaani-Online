@@ -59,7 +59,10 @@ EDGE_VOICES = [
     }
 ]
 
+VOICE_GENDER_MAP = {ev["id"]: ev["gender"] for ev in EDGE_VOICES}
+
 def run_in_sta_thread(func):
+
     """
     Decorator/wrapper to execute pyttsx3 operations on a clean STA thread.
     This resolves SAPI5 COM threading mode conflicts (MTA vs STA) inside Streamlit worker threads.
@@ -194,13 +197,18 @@ class TTSGenerator:
         is_hindi = any(0x0900 <= ord(c) <= 0x097F for c in text)
 
         effective_voice_id = voice_id
-        if not effective_voice_id or effective_voice_id == "null":
-            if is_gujarati:
-                effective_voice_id = "gu-IN-DhwaniNeural"
-            elif is_hindi:
-                effective_voice_id = "hi-IN-SwaraNeural"
-            else:
-                effective_voice_id = "en-US-AvaNeural"
+        selected_gender = VOICE_GENDER_MAP.get(voice_id, "Female")
+
+        if is_gujarati:
+            if not effective_voice_id or not effective_voice_id.startswith("gu-"):
+                effective_voice_id = "gu-IN-NiranjanNeural" if selected_gender == "Male" else "gu-IN-DhwaniNeural"
+        elif is_hindi:
+            if not effective_voice_id or not effective_voice_id.startswith("hi-"):
+                effective_voice_id = "hi-IN-MadhurNeural" if selected_gender == "Male" else "hi-IN-SwaraNeural"
+        elif not effective_voice_id or effective_voice_id == "null":
+            effective_voice_id = "en-US-AvaNeural"
+
+
             
         is_edge_voice = any(ev["id"] == effective_voice_id for ev in EDGE_VOICES)
         

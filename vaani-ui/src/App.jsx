@@ -6,9 +6,19 @@ import { useStream } from './hooks/useStream'
 import './App.css'
 import TourGuide from './components/TourGuide'
 
+const DEFAULT_VOICES = [
+  { id: "en-US-AvaNeural", name: "Edge Ava (Neural - US Female)", gender: "Female", languages: ["en"], type: "edge" },
+  { id: "en-US-AndrewNeural", name: "Edge Andrew (Neural - US Male)", gender: "Male", languages: ["en"], type: "edge" },
+  { id: "en-IN-NeerjaNeural", name: "Edge Neerja (Neural - IN Female)", gender: "Female", languages: ["en"], type: "edge" },
+  { id: "hi-IN-SwaraNeural", name: "Edge Swara (Neural - Hindi Female)", gender: "Female", languages: ["hi"], type: "edge" },
+  { id: "hi-IN-MadhurNeural", name: "Edge Madhur (Neural - Hindi Male)", gender: "Male", languages: ["hi"], type: "edge" },
+  { id: "gu-IN-DhwaniNeural", name: "Edge Dhwani (Neural - Gujarati Female)", gender: "Female", languages: ["gu"], type: "edge" },
+  { id: "gu-IN-NiranjanNeural", name: "Edge Niranjan (Neural - Gujarati Male)", gender: "Male", languages: ["gu"], type: "edge" }
+]
+
 export default function App() {
   const [health, setHealth] = useState(null)
-  const [voices, setVoices] = useState([])
+  const [voices, setVoices] = useState(DEFAULT_VOICES)
   const [messages, setMessages] = useState([])
   const [recording, setRecording] = useState(false)
   const audioRef = useRef(null)
@@ -33,6 +43,17 @@ export default function App() {
     }
   }, [])
 
+  const fetchVoices = async () => {
+    try {
+      const v = await getVoices()
+      if (v && v.voices && v.voices.length > 0) {
+        setVoices(v.voices)
+      }
+    } catch (e) {
+      console.error('Error fetching voices:', e)
+    }
+  }
+
   // Poll health every 5 seconds
   useEffect(() => {
     const fetchHealth = async () => {
@@ -40,29 +61,23 @@ export default function App() {
         const h = await getHealth()
         setHealth(h)
       } catch (e) {
-        setHealth({ status: 'error', llm_provider: 'local', ollama_connected: false, groq_configured: false })
+        setHealth({ status: 'error', llm_provider: 'groq', groq_configured: false })
+
       }
     }
+
 
     fetchHealth()
     const timer = setInterval(fetchHealth, 5000)
     return () => clearInterval(timer)
   }, [])
 
-  // Fetch voices on load
+
+  // Fetch voices on initial load
   useEffect(() => {
-    const fetchVoices = async () => {
-      try {
-        const v = await getVoices()
-        if (v && v.voices) {
-          setVoices(v.voices)
-        }
-      } catch (e) {
-        console.error('Error fetching voices:', e)
-      }
-    }
     fetchVoices()
   }, [])
+
 
   const playAudioBlob = (blob) => {
     if (audioRef.current) {
@@ -84,12 +99,14 @@ export default function App() {
   const handleTextSubmit = async (text) => {
     if (streaming || recording) return
 
-    // 1. Detect language
+    // 1. Detect language (Script + Romanized Gujarati & Hindi)
     const guRegex = /[\u0A80-\u0AFF]/
     const hiRegex = /[\u0900-\u097F]/
-    const isGujarati = guRegex.test(text)
+    const guRomanRegex = /\b(kem|cho|chhe|shu|su|tamaru|tamne|tame|karo|majama|majamaa|bhai|bura|bhura)\b/i
+    const isGujarati = guRegex.test(text) || guRomanRegex.test(text)
     const isHindi = hiRegex.test(text)
     const detectedLang = isGujarati ? 'gu' : (isHindi ? 'hi' : 'en')
+
 
     let translatedText = text
     let result = {
@@ -164,21 +181,24 @@ export default function App() {
           try {
             const blob = await getTTS(fullText, config.voiceId, config.ttsRate, config.ttsVolume)
             const audioUrl = URL.createObjectURL(blob)
+
             setMessages(prev => {
               const updated = [...prev]
               if (updated.length > 0 && updated[updated.length - 1].role === 'assistant') {
                 updated[updated.length - 1] = {
                   ...updated[updated.length - 1],
+                  audio_url: audioUrl,
                   audioUrl: audioUrl
                 }
               }
               return updated
             })
-            playAudioBlob(blob)
           } catch (e) {
             console.error('TTS Generation failed:', e)
           }
         }
+
+
       }, (err) => {
         console.error('Streaming failed:', err)
       })
@@ -237,21 +257,28 @@ export default function App() {
           try {
             const blob = await getTTS(fullText, config.voiceId, config.ttsRate, config.ttsVolume)
             const audioUrl = URL.createObjectURL(blob)
+
+            // Auto-play speech audio out loud when generated
+            const audio = new Audio(audioUrl)
+            audio.volume = config.ttsVolume !== undefined ? config.ttsVolume : 1.0
+            audio.play().catch(e => console.warn('Autoplay blocked:', e))
+
             setMessages(prev => {
               const updated = [...prev]
               if (updated.length > 0 && updated[updated.length - 1].role === 'assistant') {
                 updated[updated.length - 1] = {
                   ...updated[updated.length - 1],
+                  audio_url: audioUrl,
                   audioUrl: audioUrl
                 }
               }
               return updated
             })
-            playAudioBlob(blob)
           } catch (e) {
             console.error('TTS Generation failed:', e)
           }
         }
+
       }, (err) => {
         console.error('Streaming failed:', err)
       })
@@ -268,7 +295,15 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      width: '100vw',
+      background: 'var(--bg-dark)',
+      backgroundImage: 'var(--bg-gradient)',
+      overflow: 'hidden'
+    }}>
+
       <Sidebar
         config={config}
         setConfig={setConfig}

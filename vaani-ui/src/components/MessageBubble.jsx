@@ -12,13 +12,18 @@ function AudioPlayer({ src }) {
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime)
     const onLoadedMetadata = () => setDuration(audio.duration)
-    const onEnded = () => setIsPlaying(false)
+    const onEnded = () => {
+      setIsPlaying(false)
+      setCurrentTime(0)
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0
+      }
+    }
 
     audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
     audio.addEventListener('ended', onEnded)
 
-    // Reset player state if source changes
     setIsPlaying(false)
     setCurrentTime(0)
 
@@ -30,10 +35,15 @@ function AudioPlayer({ src }) {
   }, [src])
 
   const togglePlay = () => {
+    if (!audioRef.current) return
     if (isPlaying) {
       audioRef.current.pause()
       setIsPlaying(false)
     } else {
+      if (audioRef.current.ended || audioRef.current.currentTime >= audioRef.current.duration) {
+        audioRef.current.currentTime = 0
+        setCurrentTime(0)
+      }
       audioRef.current.play()
       setIsPlaying(true)
     }
@@ -58,30 +68,32 @@ function AudioPlayer({ src }) {
       alignItems: 'center',
       gap: '12px',
       marginTop: '12px',
-      padding: '8px 12px',
-      background: 'var(--surface-2)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--radius-sm)',
+      padding: '8px 14px',
+      background: 'rgba(255, 255, 255, 0.05)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
       width: '100%',
-      maxWidth: '300px',
+      maxWidth: '320px',
       userSelect: 'none'
     }}>
       <audio ref={audioRef} src={src} />
       <button 
+        type="button"
         onClick={togglePlay}
         style={{
-          background: isPlaying ? 'var(--accent)' : 'var(--border-strong)',
+          background: isPlaying ? '#2563eb' : 'rgba(255, 255, 255, 0.12)',
           border: 'none',
           borderRadius: '50%',
           width: '32px',
           height: '32px',
+          minWidth: '32px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
-          color: 'var(--text)',
-          transition: 'all 0.2s ease',
-          boxShadow: isPlaying ? '0 0 10px var(--accent-glow)' : 'none'
+          color: '#ffffff',
+          transition: 'all 0.15s ease',
+          boxShadow: isPlaying ? '0 0 12px rgba(37, 99, 235, 0.6)' : 'none'
         }}
       >
         {isPlaying ? (
@@ -105,20 +117,15 @@ function AudioPlayer({ src }) {
           onChange={handleSeek}
           style={{
             width: '100%',
-            accentColor: 'var(--accent)',
-            cursor: 'pointer',
-            height: '4px',
-            background: 'var(--border)',
-            borderRadius: '2px',
-            outline: 'none'
+            cursor: 'pointer'
           }}
         />
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: '9px',
-          color: 'var(--text-secondary)',
-          fontFamily: 'var(--font-mono)'
+          fontSize: '10px',
+          fontFamily: 'var(--font-mono)',
+          color: '#9ca3af'
         }}>
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
@@ -128,85 +135,96 @@ function AudioPlayer({ src }) {
   )
 }
 
-
 export default function MessageBubble({ message, streaming }) {
-  const { role, content, original_text, detected_language, confidence, noise_level, audioUrl } = message
+  const { role, content, audio_url, audioUrl, detected_language, confidence, noise_level, original_text } = message
   const isUser = role === 'user'
+  const currentAudio = audio_url || audioUrl
+
 
   const userStyle = {
     alignSelf: 'flex-end',
-    maxWidth: '65%',
-    background: 'var(--surface-2)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)',
-    padding: '12px 16px',
-    fontFamily: 'var(--font-sans)',
+    background: 'rgba(37, 99, 235, 0.2)',
+    border: '1px solid rgba(59, 130, 246, 0.4)',
+    borderRadius: '16px 16px 4px 16px',
+    padding: '12px 18px',
+    maxWidth: '75%',
+    color: '#f3f4f6',
     fontSize: '14px',
-    lineHeight: 1.6,
-    color: 'var(--text)'
+    lineHeight: '1.5',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
   }
 
   const assistantStyle = {
     alignSelf: 'flex-start',
-    maxWidth: '75%',
-    background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderLeft: '2px solid var(--accent)',
-    borderRadius: '4px var(--radius-lg) var(--radius-lg) var(--radius-lg)',
-    padding: '16px 18px',
-    fontFamily: 'var(--font-sans)',
+    background: 'rgba(255, 255, 255, 0.04)',
+    borderLeft: '3px solid #3b82f6',
+    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+    borderRadius: '4px 16px 16px 16px',
+    padding: '14px 20px',
+    maxWidth: '85%',
+    color: '#f3f4f6',
     fontSize: '14px',
-    lineHeight: 1.7,
-    color: 'var(--text)'
+    lineHeight: '1.6',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)'
   }
 
   const metadataRowStyle = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    marginTop: '8px',
     flexWrap: 'wrap',
     fontFamily: 'var(--font-mono)',
     fontSize: '11px',
-    color: 'var(--muted)'
+    color: '#9ca3af',
+    marginTop: '4px'
   }
 
   const badgeStyles = {
     hi: {
-      background: 'rgba(245,158,11,0.15)',
-      color: 'var(--badge-hi)',
-      border: '1px solid rgba(245,158,11,0.3)'
+      background: 'rgba(245, 158, 11, 0.15)',
+      color: '#f59e0b',
+      border: '1px solid rgba(245, 158, 11, 0.3)'
     },
     en: {
-      background: 'rgba(99,102,241,0.15)',
-      color: 'var(--badge-en)',
-      border: '1px solid rgba(99,102,241,0.3)'
+      background: 'rgba(59, 130, 246, 0.15)',
+      color: '#60a5fa',
+      border: '1px solid rgba(59, 130, 246, 0.3)'
     },
     gu: {
-      background: 'rgba(139,92,246,0.15)',
-      color: 'var(--badge-gu)',
-      border: '1px solid rgba(139,92,246,0.3)'
+      background: 'rgba(139, 92, 246, 0.15)',
+      color: '#a78bfa',
+      border: '1px solid rgba(139, 92, 246, 0.3)'
     }
   }
 
-  const badgeStyle = (lang) => ({
-    ...(badgeStyles[lang] || {
-      background: 'var(--surface-3)',
-      color: 'var(--text-secondary)',
-      border: '1px solid var(--border)'
-    }),
-    fontFamily: 'var(--font-mono)',
-    fontSize: '10px',
-    padding: '2px 8px',
-    borderRadius: '20px',
-    letterSpacing: '1px',
-    textTransform: 'uppercase'
-  })
+  const getValidLang = (lang) => {
+    const norm = (lang || 'en').toLowerCase()
+    return (norm === 'hi' || norm === 'gu') ? norm : 'en'
+  }
+
+  const badgeStyle = (lang) => {
+    const validLang = getValidLang(lang)
+    return {
+      ...(badgeStyles[validLang]),
+      fontFamily: 'var(--font-mono)',
+      fontSize: '10px',
+      padding: '2px 8px',
+      borderRadius: '20px',
+      letterSpacing: '1px',
+      textTransform: 'uppercase',
+      fontWeight: 500
+    }
+  }
 
   const textStyle = {
     fontFamily: 'var(--font-mono)',
     fontSize: '11px',
-    color: 'var(--muted)'
+    color: '#9ca3af'
   }
 
   return (
@@ -217,7 +235,7 @@ export default function MessageBubble({ message, streaming }) {
           {(detected_language || confidence || noise_level || (original_text && original_text !== content)) && (
             <div style={metadataRowStyle}>
               {detected_language && (
-                <span style={badgeStyle(detected_language)}>{detected_language}</span>
+                <span style={badgeStyle(detected_language)}>{getValidLang(detected_language)}</span>
               )}
               {confidence !== undefined && confidence !== null && (
                 <span style={textStyle}>
@@ -236,11 +254,12 @@ export default function MessageBubble({ message, streaming }) {
       ) : (
         <div style={assistantStyle}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <span>
+            <div>
               {content}
               {streaming && <span className="cursor">|</span>}
-            </span>
-            {audioUrl && <AudioPlayer src={audioUrl} />}
+            </div>
+            {currentAudio && <AudioPlayer src={currentAudio} />}
+
           </div>
         </div>
       )}

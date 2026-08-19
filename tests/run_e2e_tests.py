@@ -8,9 +8,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.config import settings
-from app.core.noise_reducer import reduce_noise, estimate_noise_level
-from app.core.transcriber import Transcriber, UnsupportedLanguageError, LowConfidenceError
-from app.core.translator import Translator
+from app.core.audio_denoiser import reduce_noise, estimate_noise_level
+from app.core.stt_engine import Transcriber, UnsupportedLanguageError, LowConfidenceError
+from app.core.translation_engine import Translator
+
 from app.services.pipeline import VoicePipeline
 
 def print_section(title):
