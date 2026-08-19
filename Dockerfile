@@ -31,7 +31,8 @@ COPY vaani_api.py /app/vaani_api.py
 COPY download_models.py /app/download_models.py
 
 # Download AI models into the container image
-RUN python download_models.py
+RUN python download_models.py --yes
+
 
 # Expose port
 EXPOSE 8001

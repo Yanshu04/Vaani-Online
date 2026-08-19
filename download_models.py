@@ -13,11 +13,16 @@ def download_all_models():
     print("All models will be saved locally to the './models' directory.")
     print("=" * 70)
 
-    # Ask user to confirm before starting download
-    choice = input("Do you want to continue with the download? (y/n): ").strip().lower()
+    # Ask user to confirm before starting download if running in an interactive terminal
+    if "--yes" in sys.argv or "-y" in sys.argv or not sys.stdin.isatty():
+        choice = 'y'
+    else:
+        choice = input("Do you want to continue with the download? (y/n): ").strip().lower()
+
     if choice != 'y':
         print("Download cancelled by user.")
         sys.exit(0)
+
 
     models_dir = "./models"
     os.makedirs(models_dir, exist_ok=True)
