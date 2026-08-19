@@ -1,31 +1,33 @@
 # =============================================================================
-# Vaani Dependencies (Optimized for Python 3.13 compatibility)
+# Vaani Production Dependencies
 # =============================================================================
 
+# --- Backend Server Framework ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+pydantic>=2.7.0
+
 # --- Audio Processing ---
-sounddevice>=0.4.6         # Captures live audio stream from the microphone
-webrtcvad-wheels>=2.0.14   # Voice Activity Detection (silence vs speech detection, pre-compiled for Windows & Python 3.13)
-noisereduce>=3.0.2         # Cleans background noise from raw audio inputs
-numpy>=2.1.0               # Performs matrix operations and manipulations on audio arrays (Python 3.13 wheels)
+sounddevice>=0.4.6
+webrtcvad-wheels>=2.0.14
+noisereduce>=3.0.2
+numpy>=1.26.0
+scipy>=1.11.0
+soundfile>=0.12.1
 
 # --- AI & Translation Models ---
-torch>=2.6.0               # Core deep learning backend required by transformers (Python 3.13 wheels)
-faster-whisper>=1.0.3      # High-performance speech-to-text engine optimized for CPU execution
-transformers>=4.45.0       # Interface for Helsinki-NLP machine translation models (supports tokenizers with Python 3.13 wheels)
-sentencepiece>=0.2.1       # Text tokenizer dependency required by translation models (Python 3.13 wheels)
-langdetect>=1.0.9          # Fallback language detector for mixed-language sentence translations
+torch>=2.2.0
+faster-whisper>=1.0.3
+transformers>=4.45.0
+sentencepiece>=0.2.1
+langdetect>=1.0.9
 
-# --- Frontend & UI ---
-streamlit>=1.35.0          # Lightweight framework for rendering the web application UI (supports NumPy 2.x)
-
-# --- Utilities ---
-python-dotenv>=1.0.1       # Loads environment configurations from the local .env file
-
-# --- Text-to-Speech ---
-pyttsx3>=2.90              # Offline text-to-speech engine
-edge-tts>=7.2.8            # Microsoft Edge's translation service/TTS (natural neural voices)
-
-
-# --- Testing ---
-pytest>=8.1.1              # Unit testing framework
+# --- Text-to-Speech & LLM ---
+pyttsx3>=2.90
+edge-tts>=7.2.8
 openai>=1.0.0
+
+# --- Utilities & Environment ---
+python-dotenv>=1.0.1
+pytest>=8.1.1
