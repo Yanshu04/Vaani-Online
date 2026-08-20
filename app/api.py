@@ -50,7 +50,6 @@ def health():
         "groq_configured": groq_ok
     }
 
-    }
 
 
 @app.get("/voices")
