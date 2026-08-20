@@ -177,6 +177,18 @@ export default function App() {
           return prev
         })
       }, async (fullText) => {
+        // Update assistant bubble with final text (translated if non-English)
+        setMessages(prev => {
+          const updated = [...prev]
+          if (updated.length > 0 && updated[updated.length - 1].role === 'assistant') {
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              content: fullText
+            }
+          }
+          return updated
+        })
+
         if (config.ttsEnabled && fullText) {
           try {
             const blob = await getTTS(fullText, config.voiceId, config.ttsRate, config.ttsVolume)
@@ -206,6 +218,7 @@ export default function App() {
       console.error(e)
     }
   }
+
 
   const handleAudioTranscribed = async (result) => {
     if (!result || result.error) {
@@ -253,6 +266,18 @@ export default function App() {
           return prev
         })
       }, async (fullText) => {
+        // Update assistant bubble with final text (translated if non-English)
+        setMessages(prev => {
+          const updated = [...prev]
+          if (updated.length > 0 && updated[updated.length - 1].role === 'assistant') {
+            updated[updated.length - 1] = {
+              ...updated[updated.length - 1],
+              content: fullText
+            }
+          }
+          return updated
+        })
+
         if (config.ttsEnabled && fullText) {
           try {
             const blob = await getTTS(fullText, config.voiceId, config.ttsRate, config.ttsVolume)
@@ -280,6 +305,7 @@ export default function App() {
         }
 
       }, (err) => {
+
         console.error('Streaming failed:', err)
       })
     } catch (e) {
