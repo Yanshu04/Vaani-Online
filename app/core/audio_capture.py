@@ -1,9 +1,14 @@
 import time
 import threading
 import numpy as np
-import sounddevice as sd
+try:
+    import sounddevice as sd
+except (ImportError, OSError):
+    sd = None
+
 import webrtcvad
 from app.config import settings
+
 
 def record_until_silence() -> tuple[np.ndarray, np.ndarray | None]:
     """
@@ -12,7 +17,11 @@ def record_until_silence() -> tuple[np.ndarray, np.ndarray | None]:
     Returns a tuple of (audio_float32, silence_float32) where silence_float32 contains
     only non-speech frames for noise profile estimation.
     """
+    if sd is None:
+        raise RuntimeError("Microphone capture disabled: sounddevice / PortAudio library not available in headless environment.")
+
     sample_rate = settings.SAMPLE_RATE
+
     vad_aggressiveness = settings.VAD_AGGRESSIVENESS
     silence_ms = settings.SILENCE_MS
     max_record_seconds = settings.MAX_RECORD_SECONDS
@@ -171,8 +180,14 @@ class ThreadedRecorder:
         self.speech_detected_ever = False
 
     def _record_loop(self):
+        if sd is None:
+            self.error = "Microphone capture disabled: sounddevice / PortAudio library not available in headless environment."
+            self.finished = True
+            return
+
         try:
             vad = webrtcvad.Vad(self.vad_aggressiveness)
+
         except Exception as e:
             self.error = f"Failed to initialize VAD: {e}"
             self.finished = True

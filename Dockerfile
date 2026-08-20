@@ -14,10 +14,13 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsndfile1 \
+    libportaudio2 \
+    portaudio19-dev \
     build-essential \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /app
 
