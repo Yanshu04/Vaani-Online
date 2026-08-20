@@ -30,6 +30,28 @@ pipeline = None
 tts = TTSGenerator()
 llm = LLMResponder()
 
+# Fast Groq-powered translation (avoids loading heavy NLLB model in streaming path)
+def groq_translate(text: str, target_lang: str) -> str:
+    """Translate text to target language using Groq API (fast, no local model needed)."""
+    lang_names = {"hi": "Hindi", "gu": "Gujarati"}
+    lang_name = lang_names.get(target_lang, target_lang)
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=settings.GROQ_API_KEY, base_url=settings.GROQ_BASE_URL)
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": f"You are a professional translator. Translate the following English text to {lang_name}. Output ONLY the translated text with no explanation, no quotes, no extra words."},
+                {"role": "user", "content": text}
+            ],
+            temperature=0.1,
+            max_tokens=512,
+            timeout=10
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return text  # Fallback: return original if translation fails
+
 def get_pipeline():
     global pipeline
     if pipeline is None:
@@ -50,6 +72,12 @@ def health():
         "llm_provider": "groq",
         "groq_configured": groq_ok
     }
+
+@app.get("/ping")
+@app.get("/api/ping")
+def ping():
+    """Lightweight keep-alive endpoint to prevent Render cold starts."""
+    return {"pong": True}
 
 @app.get("/voices")
 @app.get("/api/voices")
@@ -76,43 +104,19 @@ def chat_stream(req: ChatRequest):
 
     def generate():
         if target_lang == "en":
+            # English: stream tokens directly, no translation needed
             for token in llm.generate_response_stream(payload):
                 yield token
         else:
-            buffer = ""
+            # Non-English: collect full LLM response then translate via Groq API (fast)
+            full_response = ""
             for token in llm.generate_response_stream(payload):
-                buffer += token
-                
-                # Extract completed sentences/paragraphs ending in . ! ? or \n
-                matches = list(re.finditer(r'[^.!?\n]*[.!?\n]', buffer))
-                if matches:
-                    last_match = matches[-1]
-                    split_pos = last_match.end()
-                    completed = buffer[:split_pos]
-                    buffer = buffer[split_pos:]
-                    
-                    segments = [m.group(0) for m in matches]
-                    for segment in segments:
-                        if any(c.isalpha() for c in segment):
-                            leading_space = segment[:len(segment) - len(segment.lstrip())]
-                            trailing_space = segment[len(segment.rstrip()):]
-                            inner_text = segment.strip()
-                            
-                            active_pipe = get_pipeline()
-                            translated = active_pipe.translation_engine.translate_to_lang(inner_text, target_lang)
-                            yield leading_space + translated + trailing_space
-                        else:
-                            yield segment
-            
-            # Translate and yield any remaining text at the end
-            if buffer.strip():
-                active_pipe = get_pipeline()
-                translated = active_pipe.translation_engine.translate_to_lang(buffer.strip(), target_lang)
-                leading_space = buffer[:len(buffer) - len(buffer.lstrip())]
-                trailing_space = buffer[len(buffer.rstrip()):]
-                yield leading_space + translated + trailing_space
-            elif buffer:
-                yield buffer
+                full_response += token
+                yield token  # Stream English tokens to show progress immediately
+            # After streaming completes, send the translated version as a special marker
+            if full_response.strip():
+                translated = groq_translate(full_response.strip(), target_lang)
+                yield f"\n\n__TRANSLATED__:{translated}"
 
     return StreamingResponse(generate(), media_type="text/plain")
 
