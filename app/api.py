@@ -30,11 +30,16 @@ pipeline = None
 tts = TTSGenerator()
 llm = LLMResponder()
 
-@app.on_event("startup")
-def startup():
+def get_pipeline():
     global pipeline
-    settings.WHISPER_MODEL = "medium"
-    pipeline = VoicePipeline()
+    if pipeline is None:
+        model_size = settings.WHISPER_MODEL
+        if os.getenv("RENDER") or os.getenv("PORT"):
+            model_size = os.getenv("VAANI_WHISPER_MODEL", "tiny")
+        settings.WHISPER_MODEL = model_size
+        print(f"Lazy-initializing VoicePipeline with model '{model_size}'...")
+        pipeline = VoicePipeline()
+    return pipeline
 
 @app.get("/health")
 def health():
@@ -43,6 +48,8 @@ def health():
         "status": "ok",
         "llm_provider": "groq",
         "groq_configured": groq_ok
+    }
+
     }
 
 
@@ -91,14 +98,16 @@ def chat_stream(req: ChatRequest):
                             trailing_space = segment[len(segment.rstrip()):]
                             inner_text = segment.strip()
                             
-                            translated = pipeline.translation_engine.translate_to_lang(inner_text, target_lang)
+                            active_pipe = get_pipeline()
+                            translated = active_pipe.translation_engine.translate_to_lang(inner_text, target_lang)
                             yield leading_space + translated + trailing_space
                         else:
                             yield segment
             
             # Translate and yield any remaining text at the end
             if buffer.strip():
-                translated = pipeline.translation_engine.translate_to_lang(buffer.strip(), target_lang)
+                active_pipe = get_pipeline()
+                translated = active_pipe.translation_engine.translate_to_lang(buffer.strip(), target_lang)
                 leading_space = buffer[:len(buffer) - len(buffer.lstrip())]
                 trailing_space = buffer[len(buffer.rstrip()):]
                 yield leading_space + translated + trailing_space
@@ -124,12 +133,10 @@ def text_to_speech(req: ChatRequest):
 async def transcribe(
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
-    whisper_model: str = "medium"
+    whisper_model: str = "tiny"
 ):
-    global pipeline
-    if pipeline is None or settings.WHISPER_MODEL != whisper_model:
-        settings.WHISPER_MODEL = whisper_model
-        pipeline = VoicePipeline()
+    active_pipe = get_pipeline()
+
 
     if file is not None:
         audio_bytes = await file.read()
@@ -141,7 +148,8 @@ async def transcribe(
         noise_level = estimate_noise_level(audio_array)
         audio_cleaned = reduce_noise(audio_array, settings.SAMPLE_RATE)
 
-        result = pipeline.stt_engine.transcribe(audio_cleaned)
+        result = active_pipe.stt_engine.transcribe(audio_cleaned)
+
         original_text = result["text"]
         detected_lang = result["language"]
         if detected_lang not in ["en", "hi", "gu"]:
@@ -174,7 +182,8 @@ async def transcribe(
     if detected_lang == "en":
         english_text = original_text
     else:
-        english_text = pipeline.translation_engine.translate_mixed(original_text)
+        english_text = active_pipe.translation_engine.translate_mixed(original_text)
+
 
     return {
         "original_text": original_text,
