@@ -42,6 +42,7 @@ def get_pipeline():
     return pipeline
 
 @app.get("/health")
+@app.get("/api/health")
 def health():
     groq_ok = bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip())
     return {
@@ -50,9 +51,8 @@ def health():
         "groq_configured": groq_ok
     }
 
-
-
 @app.get("/voices")
+@app.get("/api/voices")
 def get_voices():
     try:
         return {"voices": tts.get_available_voices()}
@@ -69,6 +69,7 @@ class ChatRequest(BaseModel):
     tts_volume: float = 1.0
 
 @app.post("/chat/stream")
+@app.post("/api/chat/stream")
 def chat_stream(req: ChatRequest):
     payload = req.history + [{"role": "user", "content": req.message}]
     target_lang = req.detected_lang
@@ -116,6 +117,7 @@ def chat_stream(req: ChatRequest):
     return StreamingResponse(generate(), media_type="text/plain")
 
 @app.post("/tts")
+@app.post("/api/tts")
 def text_to_speech(req: ChatRequest):
     try:
         wav_bytes = tts.generate_speech(
@@ -129,12 +131,14 @@ def text_to_speech(req: ChatRequest):
         return {"error": str(e)}
 
 @app.post("/transcribe")
+@app.post("/api/transcribe")
 async def transcribe(
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
     whisper_model: str = "tiny"
 ):
     active_pipe = get_pipeline()
+
 
 
     if file is not None:
